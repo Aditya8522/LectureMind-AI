@@ -1184,6 +1184,23 @@ function highlightPythonSyntax(rawCode) {
 
 // Full Markdown renderer (supports headings, bold, italic, lists, tables, fenced code, hr)
 function renderMarkdownFull(text) {
+  // ── 0. Extract and protect ALL LaTeX math BEFORE any HTML escaping ─────────
+  // We stash math regions into placeholder tokens so they survive escaping.
+  const mathStash = [];
+
+  function stashMath(raw, displayMode) {
+    const idx = mathStash.length;
+    mathStash.push({ raw, displayMode });
+    return `%%MATH_${idx}%%`;
+  }
+
+  // Protect display math first ($$...$$) — greedy multi-line, no HTML escape
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, inner) => stashMath(inner.trim(), true));
+
+  // Protect inline math ($...$) — single-line only, not empty
+  text = text.replace(/\$([^\n$]+?)\$/g, (_, inner) => stashMath(inner.trim(), false));
+
+  // ── Now safe to escape remaining HTML ──────────────────────────────────────
   let html = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -1234,7 +1251,6 @@ function renderMarkdownFull(text) {
   html = html.replace(/^---$/gm, "<hr>");
 
   // ── 5. Tables ──
-  // Match a block of | ... | lines (header + separator + rows)
   html = html.replace(/((?:^\|.+\|\n?)+)/gm, (block) => {
     const rows = block.trim().split("\n");
     if (rows.length < 2) return block;
@@ -1244,7 +1260,6 @@ function renderMarkdownFull(text) {
 
     rows.forEach((row, i) => {
       if (/^\|[-:\s|]+\|$/.test(row.trim())) {
-        // Separator row — switch to tbody
         if (!inBody) { tableHtml += "<tbody>"; inBody = true; }
         return;
       }
@@ -1263,7 +1278,6 @@ function renderMarkdownFull(text) {
   });
 
   // ── 6. Blockquotes (> text) ──
-  // Must run BEFORE lists so "> -" doesn't get eaten by the list rule
   html = html.replace(/((?:^&gt;.+\n?)+)/gm, (block) => {
     const inner = block
       .split("\n")
@@ -1284,7 +1298,6 @@ function renderMarkdownFull(text) {
     });
 
   // ── 8. Timestamps → clickable pills ──
-  // Match [M:SS] or [H:MM:SS] patterns
   html = html.replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g,
     '<button class="ts-pill inline-ts" onclick="seekTo(tsToSec(\'$1\'))">▶ $1</button>'
   );
@@ -1297,7 +1310,28 @@ function renderMarkdownFull(text) {
     .replace(/<br>\s*(<\/?(?:table|thead|tbody|tr|th|td|ul|ol|li|h[1-4]|pre|div|hr|blockquote)[^>]*>)/gi, "$1")
     .replace(/(<\/?(?:table|thead|tbody|tr|th|td|ul|ol|li|h[1-4]|pre|div|hr|blockquote)[^>]*>)\s*<br>/gi, "$1");
 
+  // ── 11. Restore stashed LaTeX math as KaTeX-rendered spans ─────────────────
+  html = html.replace(/%%MATH_(\d+)%%/g, (_, idx) => {
+    const { raw, displayMode } = mathStash[parseInt(idx)];
+    try {
+      if (typeof katex !== "undefined") {
+        return katex.renderToString(raw, {
+          displayMode,
+          throwOnError: false,
+          output: "html",
+        });
+      }
+    } catch (e) {
+      console.warn("[KaTeX] Render error:", e.message, raw);
+    }
+    // Fallback: show raw LaTeX wrapped in a styled span
+    return displayMode
+      ? `<span class="math-display">\\[${raw}\\]</span>`
+      : `<span class="math-inline">\\(${raw}\\)</span>`;
+  });
+
   return html;
+
 }
 
 
