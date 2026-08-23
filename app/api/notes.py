@@ -18,10 +18,53 @@ import io
 import re
 
 from app.models.db import get_db, Video, Note
+
 from app.core.retrieval import retrieve_all_chunks_for_video
 from app.core.llm import generate_notes
 
 router = APIRouter(prefix="/api/notes", tags=["notes"])
+
+
+# ── LaTeX → Unicode Math Converter ────────────────────────────────────────────
+
+def _latex_to_unicode(latex_src: str, display: bool = False) -> str:
+    """
+    Convert a raw LaTeX math expression to a Unicode text representation
+    using pylatexenc. Falls back to a bracketed raw form on error.
+    """
+    try:
+        from pylatexenc.latex2text import LatexNodes2Text
+        conv = LatexNodes2Text()
+        result = conv.latex_to_text(latex_src).strip()
+        if display:
+            return f"\n  [{result}]\n"
+        return result
+    except Exception:
+        # Fallback: return raw LaTeX in brackets so it's at least readable
+        return f"[{latex_src}]" if not display else f"\n  [{latex_src}]\n"
+
+
+def _preprocess_math(md: str) -> str:
+    """
+    Replace all $$...$$ (display) and $...$ (inline) LaTeX blocks in markdown
+    with their Unicode equivalents before feeding into the PDF/DOCX renderer.
+    Process display math first (longer delimiter takes priority).
+    """
+    # Display math: $$...$$
+    md = re.sub(
+        r'\$\$([\s\S]+?)\$\$',
+        lambda m: _latex_to_unicode(m.group(1).strip(), display=True),
+        md
+    )
+    # Inline math: $...$
+    md = re.sub(
+        r'\$([^\n$]+?)\$',
+        lambda m: _latex_to_unicode(m.group(1).strip(), display=False),
+        md
+    )
+    return md
+
+
 
 
 # ── Request / Response Schemas ─────────────────────────────────────────────────
@@ -136,12 +179,16 @@ def _strip_md(text: str) -> str:
 
 
 def _clean_for_pdf(text: str) -> str:
-    """Strip emojis and normalize special Unicode quotes/dashes for FPDF core Helvetica font."""
+    """
+    Strip emojis and normalize special Unicode quotes/dashes.
+    Preserves BMP Unicode math symbols (∑, ∂, x̄, ŷ, etc.) produced by pylatexenc.
+    Uses UTF-8 safe encoding — FPDF2 supports UTF-8 with built-in fonts.
+    """
     text = _strip_md(text)
-    # Remove 4-byte UTF-8 emojis
+    # Remove 4-byte UTF-8 emojis (Supplementary Multilingual Plane)
     emoji_pattern = re.compile(r"[\U00010000-\U0010ffff]", flags=re.UNICODE)
     text = emoji_pattern.sub("", text)
-    # Common Unicode substitutions
+    # Common Unicode substitutions for cleaner document rendering
     text = (
         text.replace("\u2014", " -- ")
         .replace("\u2013", "-")
@@ -154,8 +201,9 @@ def _clean_for_pdf(text: str) -> str:
         .replace("\u2190", "<-")
         .replace("\u2026", "...")
     )
-    # Filter to latin-1 safe characters
-    return text.encode("latin-1", "ignore").decode("latin-1").strip()
+    # Return as-is (UTF-8) — do NOT encode to latin-1 (would destroy math symbols)
+    return text.strip()
+
 
 
 # ── DOCX Generator ────────────────────────────────────────────────────────────
@@ -165,6 +213,10 @@ def _build_docx(content: str, title: str) -> bytes:
     from docx.shared import Pt, RGBColor, Inches
     from docx.oxml.ns import qn
     from docx.oxml import OxmlElement
+
+    # Convert all LaTeX math to Unicode before rendering (∑, ∂, x̄, etc.)
+    content = _preprocess_math(content)
+
 
     doc = Document()
 
@@ -309,12 +361,43 @@ def _build_docx(content: str, title: str) -> bytes:
 
 def _build_pdf(content: str, title: str) -> bytes:
     from fpdf import FPDF
+    import os
+
+    # Convert all LaTeX math blocks to Unicode before rendering
+    content = _preprocess_math(content)
 
     safe_hdr_title = _clean_for_pdf(title)[:75]
 
+    # ── Locate a Unicode TrueType font (DejaVuSans from matplotlib bundled fonts) ──
+    FONT_REGULAR = None
+    FONT_BOLD    = None
+    FONT_ITALIC  = None
+    FONT_BOLDITALIC = None
+    FONT_MONO    = None
+
+    try:
+        import matplotlib
+        mpl_fonts = os.path.join(matplotlib.get_data_path(), "fonts", "ttf")
+        def _font(name):
+            p = os.path.join(mpl_fonts, name)
+            return p if os.path.exists(p) else None
+
+        FONT_REGULAR    = _font("DejaVuSans.ttf")
+        FONT_BOLD       = _font("DejaVuSans-Bold.ttf")
+        FONT_ITALIC     = _font("DejaVuSans-Oblique.ttf")
+        FONT_BOLDITALIC = _font("DejaVuSans-BoldOblique.ttf")
+        FONT_MONO       = _font("DejaVuSansMono.ttf")
+    except Exception:
+        pass
+
+    USE_UNICODE = FONT_REGULAR is not None
+
     class NotePDF(FPDF):
         def header(self):
-            self.set_font("Helvetica", "B", 8)
+            if USE_UNICODE:
+                self.set_font("DejaVuSans-B", size=8)
+            else:
+                self.set_font("Helvetica", "B", 8)
             self.set_text_color(100, 116, 139)
             self.cell(0, 7, safe_hdr_title, align="L")
             self.ln(1)
@@ -324,21 +407,47 @@ def _build_pdf(content: str, title: str) -> bytes:
 
         def footer(self):
             self.set_y(-15)
-            self.set_font("Helvetica", "", 8)
+            if USE_UNICODE:
+                self.set_font("DejaVuSans", size=8)
+            else:
+                self.set_font("Helvetica", "", 8)
             self.set_text_color(148, 163, 184)
             self.cell(0, 10, f"Page {self.page_no()}", align="C")
 
     pdf = NotePDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=True, margin=18)
     pdf.set_margins(left=18, top=18, right=18)
+
+    if USE_UNICODE:
+        # Register all DejaVu variants as named fonts
+        pdf.add_font("DejaVuSans",   fname=FONT_REGULAR)
+        pdf.add_font("DejaVuSans-B", fname=FONT_BOLD)
+        pdf.add_font("DejaVuSans-I", fname=FONT_ITALIC)
+        pdf.add_font("DejaVuSans-BI",fname=FONT_BOLDITALIC)
+        if FONT_MONO:
+            pdf.add_font("DejaVuMono", fname=FONT_MONO)
+        BODY   = "DejaVuSans"
+        BOLD   = "DejaVuSans-B"
+        ITALIC = "DejaVuSans-I"
+        BOLDITALIC = "DejaVuSans-BI"
+        MONO   = "DejaVuMono" if FONT_MONO else "DejaVuSans"
+    else:
+        # Fallback to built-in fonts (no Unicode math — but won't crash)
+        BODY   = "Helvetica"
+        BOLD   = "Helvetica"
+        ITALIC = "Helvetica"
+        BOLDITALIC = "Helvetica"
+        MONO   = "Courier"
+
     pdf.add_page()
 
     parsed = _parse_md_lines(content)
 
     for tag, data in parsed:
+
         if tag == "h1":
             clean = _clean_for_pdf(data)
-            pdf.set_font("Helvetica", "B", 16)
+            pdf.set_font(BOLD, size=16)
             pdf.set_text_color(15, 23, 42)
             pdf.multi_cell(0, 8, clean, new_x="LMARGIN", new_y="NEXT")
             pdf.set_draw_color(79, 70, 229)
@@ -349,7 +458,7 @@ def _build_pdf(content: str, title: str) -> bytes:
         elif tag == "h2":
             clean = _clean_for_pdf(data)
             pdf.ln(3)
-            pdf.set_font("Helvetica", "B", 12.5)
+            pdf.set_font(BOLD, size=12)
             pdf.set_text_color(30, 41, 59)
             pdf.multi_cell(0, 7, clean, new_x="LMARGIN", new_y="NEXT")
             pdf.set_draw_color(226, 232, 240)
@@ -360,27 +469,27 @@ def _build_pdf(content: str, title: str) -> bytes:
         elif tag == "h3":
             clean = _clean_for_pdf(data)
             pdf.ln(2)
-            pdf.set_font("Helvetica", "B", 10.5)
+            pdf.set_font(BOLD, size=10)
             pdf.set_text_color(51, 65, 85)
             pdf.multi_cell(0, 6, clean, new_x="LMARGIN", new_y="NEXT")
             pdf.ln(1)
 
         elif tag == "h4":
             clean = _clean_for_pdf(data)
-            pdf.set_font("Helvetica", "BI", 9.5)
+            pdf.set_font(BOLDITALIC, size=9)
             pdf.set_text_color(71, 85, 105)
             pdf.multi_cell(0, 5, clean, new_x="LMARGIN", new_y="NEXT")
 
         elif tag == "bullet":
             clean = _clean_for_pdf(data)
-            pdf.set_font("Helvetica", "", 9.5)
+            pdf.set_font(BODY, size=9)
             pdf.set_text_color(30, 41, 59)
             pdf.set_x(pdf.l_margin + 3)
             pdf.multi_cell(0, 5.5, f"-  {clean}", new_x="LMARGIN", new_y="NEXT")
 
         elif tag == "numbered":
             clean = _clean_for_pdf(data)
-            pdf.set_font("Helvetica", "", 9.5)
+            pdf.set_font(BODY, size=9)
             pdf.set_text_color(30, 41, 59)
             pdf.set_x(pdf.l_margin + 3)
             pdf.multi_cell(0, 5.5, clean, new_x="LMARGIN", new_y="NEXT")
@@ -388,7 +497,7 @@ def _build_pdf(content: str, title: str) -> bytes:
         elif tag == "blockquote":
             clean = _clean_for_pdf(data)
             pdf.set_fill_color(238, 242, 255)
-            pdf.set_font("Helvetica", "I", 9.5)
+            pdf.set_font(ITALIC, size=9)
             pdf.set_text_color(67, 56, 202)
             pdf.set_x(pdf.l_margin + 4)
             pdf.multi_cell(
@@ -405,7 +514,7 @@ def _build_pdf(content: str, title: str) -> bytes:
             rows = data
             if rows:
                 pdf.ln(2)
-                pdf.set_font("Helvetica", "", 8.5)
+                pdf.set_font(BODY, size=8)
                 try:
                     with pdf.table(line_height=5.5) as table:
                         for r_idx, row in enumerate(rows):
@@ -414,7 +523,7 @@ def _build_pdf(content: str, title: str) -> bytes:
                                 clean_cell = _clean_for_pdf(cell_val)
                                 table_row.cell(clean_cell)
                     pdf.ln(2)
-                except Exception as te:
+                except Exception:
                     for row in rows:
                         clean_row = " | ".join(_clean_for_pdf(c) for c in row)
                         pdf.multi_cell(0, 5, clean_row, new_x="LMARGIN", new_y="NEXT")
@@ -422,7 +531,7 @@ def _build_pdf(content: str, title: str) -> bytes:
         elif tag == "code":
             clean_code = _clean_for_pdf(data)
             pdf.set_fill_color(241, 245, 249)
-            pdf.set_font("Courier", "", 8)
+            pdf.set_font(MONO, size=7)
             pdf.set_text_color(15, 23, 42)
             pdf.multi_cell(0, 4.5, clean_code, fill=True, new_x="LMARGIN", new_y="NEXT")
             pdf.ln(2)
@@ -436,7 +545,7 @@ def _build_pdf(content: str, title: str) -> bytes:
 
         elif tag == "text":
             clean = _clean_for_pdf(data)
-            pdf.set_font("Helvetica", "", 9.5)
+            pdf.set_font(BODY, size=9)
             pdf.set_text_color(30, 41, 59)
             pdf.multi_cell(0, 5.5, clean, new_x="LMARGIN", new_y="NEXT")
 
@@ -444,6 +553,7 @@ def _build_pdf(content: str, title: str) -> bytes:
             pdf.ln(1.5)
 
     return bytes(pdf.output())
+
 
 
 
