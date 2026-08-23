@@ -256,77 +256,96 @@ def _build_cited_timestamps(chunks: List[dict], video_id: str) -> List[dict]:
     return citations
 
 
-# -- Phase 2: Notes Generation -----------------------------------------------
+# -- Phase 2: Notes Generation (Duration-Scaled & Multi-Part for 2+ Hour Lectures) --
 
-NOTES_SUMMARY_PROMPT = """You are an expert academic note-taker. Generate concise, high-quality study notes from the lecture transcript below.
+NOTES_SUMMARY_PROMPT = """You are an expert academic note-taker. Generate an executive study summary from the lecture transcript below.
+Total Lecture Duration: {duration_str}
 
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS MARKDOWN STRUCTURE:
-# 📝 Summary: {title}
+# 📝 Executive Summary: {title}
+> ⏱️ **Duration:** {duration_str} | **High-Yield Overview & Concept Roadmap**
 
-## 🎯 Core Topic
-2-3 clear sentences explaining what this lecture is fundamentally about and why it matters.
+## 🎯 Core Lecture Thesis
+2-3 clear, comprehensive paragraphs explaining the fundamental topic, why it matters, core objectives, and theoretical foundation.
 
-## 📌 Key Concepts
-- **Concept Name** — Clear, high-yield explanation (cite [M:SS] for major topic milestone)
-- (list all core concepts with concise explanations)
+## 🗺️ Lecture Roadmap & Milestones
+- **Phase 1: Foundations** [0:00] — Brief outline of introductory topics and intuition.
+- **Phase 2: Core Formulations & Derivations** — Key mathematical / algorithmic principles.
+- **Phase 3: Implementation & Validation** — Practical coding and empirical results.
+(Map out the entire timeline of the lecture with milestone timestamps [M:SS] or [H:MM:SS])
 
-## 💡 Main Takeaways
-1. First major takeaway
-2. Second major takeaway
-(3-5 practical, high-value takeaways)
+## 📌 Major Conceptual Pillars
+- **[Concept Name]** [timestamp] — Clear, high-yield explanation. Include key LaTeX formulas ($...$ or $$...$$) where applicable.
+- (Detail all major concepts covered across the full lecture duration)
 
-## 🔑 Key Terms & Definitions
-| Term | Definition |
-|------|------------|
-| Term | Clear explanation |
+## 🔑 Key Terms & Mathematical Definitions
+| Term / Symbol | Definition / Formula | Significance / Use Case |
+|---|---|---|
+| (Include 6-12 core terms and mathematical equations formatted in LaTeX) |
+
+## 💡 Master Takeaways
+1. First critical takeaway
+2. Second critical takeaway
+(5-8 practical, high-value takeaways summarizing the entire lecture)
 
 RULES:
-- Focus on high-quality conceptual clarity and clean explanations.
-- Add timestamps [M:SS] ONLY for major section / concept milestones (do NOT clutter every line with timestamps).
-- Use clean Markdown tables for structured definitions. Do not include ASCII flowcharts.
+- Maintain high academic clarity and structure.
+- Format all mathematical equations in valid LaTeX ($formula$ for inline, $$formula$$ for display).
+- Cover the entire timeline from the beginning to the end.
 
 VIDEO TITLE: {title}
 
 TRANSCRIPT CONTEXT:
 {context}
 
-GENERATE CONCISE SUMMARY NOTES NOW:"""
+GENERATE EXECUTIVE SUMMARY NOTES NOW:"""
 
 
-NOTES_DETAILED_PROMPT = """You are an expert academic note-taker. Cover the ENTIRE lecture — every concept from the very first minute to the very last.
+NOTES_DETAILED_PROMPT_SINGLE = """You are an expert academic professor and technical author. Cover the ENTIRE lecture in exhaustive detail — every concept, proof, equation, algorithm, and example from minute 0 to the very last minute.
 
-CRITICAL RULE: Be CONCISE per section. Dense bullet points, not long paragraphs. This lets you cover ALL topics within the output limit.
+CRITICAL INSTRUCTIONS FOR DEPTH & COMPLETENESS:
+1. EXHAUSTIVE DEPTH: Do NOT rush or over-summarize. For every topic, provide rich, thorough explanations (4-8 comprehensive bullet points) explaining intuition, mechanics, mathematical equations, and real-world implications.
+2. MATHEMATICAL FORMULAS IN FULL LATEX:
+   - Always format math variables and equations using standard LaTeX:
+     - Inline variables: $y = mx + b$, $\\theta_j$, $\\alpha$, $\\bar{{x}}$
+     - Standalone display equations: $$\\frac{{\\partial E}}{{\\partial b}} = -2 \\sum_{{i=1}}^{{n}} (y_i - mx_i - b) = 0$$
+   - Show complete algebraic derivations step-by-step. NEVER skip intermediate proof steps.
+3. CODE IMPLEMENTATIONS: When programming/code is discussed or shown in the lecture, write out the complete, well-commented code block.
+4. CHAPTER HEADINGS WITH TIMESTAMPS: Every subtopic must have its own ## heading with a milestone timestamp (e.g. `## 🔍 Ordinary Least Squares (OLS) [05:45]`).
 
 OUTPUT FORMAT (follow EXACTLY):
 
 # 📚 {title}
+> ⏱️ **Duration:** {duration_str} | **Comprehensive Master Study Guide**
 
-One or two sentences about what this lecture covers and why it matters.
+Brief overview of the full lecture scope, theoretical objectives, and practical significance.
 
 ---
 
-## [emoji] [Section Title] [M:SS]
+## [emoji] [Topic Title] [M:SS]
 
-> **[Key term]:** One-sentence definition of the concept introduced in this section.
+> **[Key Term / Concept]:** One-sentence formal definition of the concept introduced here.
 
-- **[Point]** — concise explanation
-- **[Point]** — concise explanation
-- (all important details from the transcript for this section)
+- **[Point]** — detailed explanation covering intuition and mechanics.
+- **[Point]** — detailed explanation.
+- (Cover all important details, parameters, nuances, and edge cases from the transcript for this section)
 
-[Add numbered list ONLY if explaining a step-by-step workflow:]
+[If explaining step-by-step logic, include numbered list:]
 1. Step one
 2. Step two
 
-[Add ONE compact table ONLY if the section compares items or shows structured info:]
-| Column | Column | Column |
-|--------|--------|--------|
-| value  | value  | value  |
+[If mathematical derivation is present, show complete LaTeX steps:]
+$$formula$$
 
-[Add code block ONLY if code was actually shown in the lecture:]
-Example:
+[If code was demonstrated, include clean Python code:]
 ```python
-# Actual code from the lecture
+# Full code from lecture
 ```
+
+[If comparing concepts, include a structured table:]
+| Feature / Concept | Mechanism | Strengths | Trade-offs |
+|---|---|---|---|
+| value | value | value | value |
 
 ---
 
@@ -334,47 +353,138 @@ Example:
 
 ---
 
-## ⚡ Quick Reference Table
+## ⚡ Comprehensive Quick Reference Table
 
-| Concept / Type | Mechanism | Strengths | Best Used When |
+| Concept / Technique | Mechanism & Math | Strengths | Best Used When |
 |---|---|---|---|
-| (one row per concept/type covered in the lecture) |
+| (Include one comprehensive row per concept/algorithm covered in the lecture) |
 
 ---
 
-## 💡 Key Takeaways
+## 💡 Master Key Takeaways (Exam & Production Review)
 
-- **[Takeaway]** — explanation
-(5–8 key takeaways)
-
----
-
-## 📝 Additional Notes
-
-- Extra tips, caveats, or practical advice from the lecture.
+- **[Takeaway 1]** — comprehensive explanation
+- (8–12 master takeaways covering the entire lecture)
 
 ---
 
-STRICT RULES:
-1. FULL COVERAGE: Go from minute 0 to the very end. If space is tight, compress earlier sections — NEVER drop later topics.
-2. ONE ## PER CONCEPT: Keep each section focused. Avoid deep ### nesting.
-3. BLOCKQUOTE FOR DEFINITIONS: Use `> **Term:** definition` for core terms being defined.
-4. TIMESTAMPS: Only on ## headings (e.g. `## 🔍 MMR Retriever [28:10]`). Never in bullets.
-5. NO FLOWCHARTS/ASCII: Tables only for structured data.
-6. CODE: Only when code appeared in the lecture.
-7. COMPLETENESS: A student must master the full topic from these notes alone.
+## 📝 Practical Implementation Notes & Nuances
+
+- Practical tips, pitfalls to avoid, computational complexity, and best practices.
+
+---
 
 VIDEO TITLE: {title}
 
 TRANSCRIPT CONTEXT:
 {context}
 
-GENERATE COMPLETE NOTES COVERING THE FULL LECTURE FROM START TO FINISH:"""
+GENERATE COMPLETE MASTER STUDY NOTES NOW:"""
+
+
+NOTES_DETAILED_PART_PROMPT = """You are an expert academic professor and technical author writing Part {part_num} of {total_parts} of an exhaustive Master Study Guide for the lecture: "{title}".
+Total Lecture Duration: {duration_str}
+This Part covers timestamps: [{start_ts}] to [{end_ts}].
+
+CRITICAL INSTRUCTIONS FOR UNCOMPRESSED DEPTH:
+1. COMPLETE CHAPTER COVERAGE: Generate in-depth, thorough notes for EVERY concept, derivation, theorem, algorithm, parameter, and code implementation introduced between [{start_ts}] and [{end_ts}].
+2. MATHEMATICAL FORMULAS IN FULL LATEX:
+   - Format all math variables and equations in standard LaTeX:
+     - Inline math: $formula$ (e.g. $y_i$, $\\bar{{x}}$, $\\beta$)
+     - Display equations: $$\\sum_{{i=1}}^{{n}} (x_i - \\bar{{x}})^2$$
+   - Provide full, step-by-step mathematical derivations without skipping algebra.
+3. SECTION FORMAT:
+   For every subtopic/milestone in this time window:
+   ## [emoji] [Topic Title] [{start_ts}]
+   > **[Key Term / Concept]:** Clear formal definition.
+   - Detailed conceptual breakdown (4–8 thorough, informative bullet points detailing intuition, mechanics, formulas, and trade-offs).
+   - [If mathematical derivation]: Complete step-by-step LaTeX display equations ($$..$$).
+   - [If step-by-step logic]: Numbered list (1., 2., 3.)
+   - [If structured comparison]: Clean Markdown table (| Col 1 | Col 2 | ...)
+   - [If code was shown or explained]: Full, clean Python/relevant code block with comments.
+4. DO NOT output the main document title (# Title) or concluding summary tables in this part — focus 100% on rich, deep chapter notes for [{start_ts}] to [{end_ts}].
+
+TRANSCRIPT CONTEXT FOR THIS PART:
+{context}
+
+GENERATE PART {part_num} CHAPTER NOTES NOW:"""
+
+
+NOTES_DETAILED_SYNTHESIS_PROMPT = """You are an expert academic educator finalizing a Master Study Guide for the lecture: "{title}".
+Total Lecture Duration: {duration_str}
+
+Below is the complete transcript outline of the entire lecture:
+{context_summary}
+
+Generate the final synthesis section containing:
+1. An Executive Quick Reference Table summarizing all major concepts, formulas (in LaTeX), strengths, and trade-offs across the ENTIRE lecture.
+2. 8–12 Master Key Takeaways for exam/interview review.
+3. Practical Implementation Notes, edge cases, and computational complexity.
+
+FORMAT:
+## ⚡ Master Quick Reference Table
+
+| Concept / Method | Mathematical Formulation / Mechanism | Strengths | Best Used When / Trade-offs |
+|---|---|---|---|
+| (Include 6-12 rows covering the full lecture) |
+
+---
+
+## 💡 Master Key Takeaways (Exam & Production Review)
+
+- **[Takeaway 1]** — in-depth explanation
+- (8-12 comprehensive takeaways)
+
+---
+
+## 📝 Practical Implementation Notes & Nuances
+
+- Practical tips, pitfalls, complexity analysis, and implementation best practices.
+
+OUTPUT ONLY THE MARKDOWN SYNTHESIS SECTIONS:"""
+
+
+def _partition_chunks_by_duration(sorted_chunks: List[dict], target_segment_duration_sec: float = 3000.0) -> List[List[dict]]:
+    """
+    Partition chunks into logical time segments for multi-part generation.
+    - If total duration <= 75 mins (4500s) -> 1 single part.
+    - If total duration > 75 mins (e.g. 2hr, 3hr+) -> 2 to 4 parts (~45-60 mins each).
+    """
+    if not sorted_chunks:
+        return []
+
+    total_duration = max(1.0, sorted_chunks[-1]["end_time"] - sorted_chunks[0]["start_time"])
+    if total_duration <= 4500.0:  # <= 75 minutes
+        return [sorted_chunks]
+
+    num_parts = max(2, min(5, round(total_duration / target_segment_duration_sec)))
+    part_duration = total_duration / num_parts
+
+    parts = []
+    current_part = []
+    current_boundary = sorted_chunks[0]["start_time"] + part_duration
+
+    for c in sorted_chunks:
+        if c["start_time"] >= current_boundary and len(parts) < num_parts - 1 and current_part:
+            parts.append(current_part)
+            current_part = [c]
+            current_boundary += part_duration
+        else:
+            current_part.append(c)
+
+    if current_part:
+        parts.append(current_part)
+
+    return parts
 
 
 def generate_notes(chunks: List[dict], video_title: str, mode: str = "summary") -> str:
     """
-    Generate structured study notes from transcript chunks.
+    Generate structured study notes from transcript chunks with duration-scaled depth.
+
+    For long lectures (> 75 min / 2+ hours):
+      - Uses multi-part chronological partition to give every hour dedicated LLM output budget.
+      - Produces complete mathematical derivations (LaTeX), code implementations, and full chapter depth.
 
     Args:
         chunks: list of chunk dicts (with text, start_time, end_time)
@@ -388,29 +498,193 @@ def generate_notes(chunks: List[dict], video_title: str, mode: str = "summary") 
         return "# No Content\nNo transcript content available to generate notes from."
 
     sorted_chunks = sorted(chunks, key=lambda c: c["start_time"])
+    start_sec = sorted_chunks[0]["start_time"]
+    end_sec = sorted_chunks[-1]["end_time"]
+    total_duration_sec = max(1.0, end_sec - start_sec)
+    duration_str = format_timestamp(total_duration_sec)
+    duration_minutes = total_duration_sec / 60.0
+
+    print(f"[notes] Generating '{mode}' notes for '{video_title}' (Duration: {duration_str}, {len(sorted_chunks)} chunks)")
+
+    # ── 1. Summary Mode ──────────────────────────────────────────────────────────
+    if mode == "summary":
+        context_parts = []
+        for chunk in sorted_chunks:
+            ts = format_timestamp(chunk["start_time"])
+            context_parts.append(f"[{ts}] {chunk['text']}")
+        context = "\n\n".join(context_parts)
+
+        prompt = NOTES_SUMMARY_PROMPT.format(
+            title=video_title,
+            duration_str=duration_str,
+            context=context,
+        )
+
+        try:
+            response = _call_gemini_with_fallback(
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.35,
+                    max_output_tokens=8192 if duration_minutes > 60 else 4096,
+                    top_p=0.9,
+                ),
+                model_candidates=NOTES_MODELS,
+                preferred_key="primary",
+            )
+            return response.text.strip()
+        except Exception as e:
+            raise RuntimeError(f"Summary notes generation failed: {str(e)}")
+
+    # ── 2. Detailed Mode: Check if multi-part partition is needed (> 75 mins / 2+ hours) ──
+    parts = _partition_chunks_by_duration(sorted_chunks, target_segment_duration_sec=3000.0)
+
+    # ── 2A. Standard Length (< 75 minutes) -> Single-pass detailed generation ─────
+    if len(parts) <= 1:
+        context_parts = []
+        for chunk in sorted_chunks:
+            ts = format_timestamp(chunk["start_time"])
+            context_parts.append(f"[{ts}] {chunk['text']}")
+        context = "\n\n".join(context_parts)
+
+        prompt = NOTES_DETAILED_PROMPT_SINGLE.format(
+            title=video_title,
+            duration_str=duration_str,
+            context=context,
+        )
+
+        try:
+            response = _call_gemini_with_fallback(
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.35,
+                    max_output_tokens=8192,
+                    top_p=0.9,
+                ),
+                model_candidates=NOTES_MODELS,
+                preferred_key="primary",
+            )
+            return response.text.strip()
+        except Exception as e:
+            raise RuntimeError(f"Detailed notes generation failed: {str(e)}")
+
+    # ── 2B. Long Lecture (>= 75 minutes / 2+ hours) -> Multi-Part In-Depth Generation ──
+    print(f"[notes] Long lecture detected ({duration_str}). Partitioning into {len(parts)} in-depth parts.")
+
+    generated_parts_content = []
+
+    for idx, part_chunks in enumerate(parts):
+        part_num = idx + 1
+        part_start_ts = format_timestamp(part_chunks[0]["start_time"])
+        part_end_ts = format_timestamp(part_chunks[-1]["end_time"])
+
+        part_context_list = []
+        for chunk in part_chunks:
+            ts = format_timestamp(chunk["start_time"])
+            part_context_list.append(f"[{ts}] {chunk['text']}")
+        part_context = "\n\n".join(part_context_list)
+
+        part_prompt = NOTES_DETAILED_PART_PROMPT.format(
+            part_num=part_num,
+            total_parts=len(parts),
+            title=video_title,
+            duration_str=duration_str,
+            start_ts=part_start_ts,
+            end_ts=part_end_ts,
+            context=part_context,
+        )
+
+        try:
+            print(f"[notes] Generating Part {part_num}/{len(parts)} ([{part_start_ts}] - [{part_end_ts}])...")
+            part_resp = _call_gemini_with_fallback(
+                contents=part_prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.35,
+                    max_output_tokens=8192,
+                    top_p=0.9,
+                ),
+                model_candidates=NOTES_MODELS,
+                preferred_key="primary",
+            )
+            part_text = part_resp.text.strip()
+            generated_parts_content.append(part_text)
+        except Exception as e:
+            print(f"[notes] [WARN] Part {part_num} generation failed: {e}. Falling back to single-pass.")
+            # Fallback to single pass if multi-part has an unexpected error
+            return _generate_notes_single_pass_fallback(sorted_chunks, video_title, duration_str)
+
+    # Generate Final Synthesis across the full lecture
+    synthesis_context_summary = []
+    for idx, part_chunks in enumerate(parts):
+        p_start = format_timestamp(part_chunks[0]["start_time"])
+        p_end = format_timestamp(part_chunks[-1]["end_time"])
+        # Take key excerpt summaries from each part
+        sample_texts = " ".join([c["text"] for c in part_chunks[:4] + part_chunks[-4:]])
+        synthesis_context_summary.append(f"Part {idx+1} ([{p_start}] - [{p_end}]): {sample_texts[:600]}...")
+
+    synthesis_prompt = NOTES_DETAILED_SYNTHESIS_PROMPT.format(
+        title=video_title,
+        duration_str=duration_str,
+        context_summary="\n\n".join(synthesis_context_summary),
+    )
+
+    try:
+        print("[notes] Generating final synthesis (Master Reference Table & Key Takeaways)...")
+        syn_resp = _call_gemini_with_fallback(
+            contents=synthesis_prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.35,
+                max_output_tokens=4096,
+                top_p=0.9,
+            ),
+            model_candidates=NOTES_MODELS,
+            preferred_key="primary",
+        )
+        synthesis_content = syn_resp.text.strip()
+    except Exception as e:
+        print(f"[notes] [WARN] Synthesis generation failed: {e}")
+        synthesis_content = ""
+
+    # Assemble the final Master Document
+    header_block = (
+        f"# 📚 {video_title}\n\n"
+        f"> ⏱️ **Total Lecture Duration:** {duration_str} | **Comprehensive Master Study Guide ({len(parts)} Parts)**\n\n"
+        f"This master study guide provides an exhaustive, chapter-by-chapter breakdown of the complete {duration_str} lecture, "
+        f"including step-by-step mathematical derivations, complete formulas, and implementation code.\n\n"
+        f"---\n"
+    )
+
+    parts_combined = "\n\n---\n\n".join(generated_parts_content)
+
+    final_document = f"{header_block}\n{parts_combined}\n\n---\n\n{synthesis_content}"
+    print(f"[notes] Master Study Guide assembled ({len(final_document)} chars, ~{len(final_document.split())} words)")
+    return final_document.strip()
+
+
+def _generate_notes_single_pass_fallback(sorted_chunks: List[dict], video_title: str, duration_str: str) -> str:
+    """Fallback generator in case multi-part synthesis encounters an issue."""
     context_parts = []
     for chunk in sorted_chunks:
         ts = format_timestamp(chunk["start_time"])
         context_parts.append(f"[{ts}] {chunk['text']}")
     context = "\n\n".join(context_parts)
 
-    prompt_template = NOTES_SUMMARY_PROMPT if mode == "summary" else NOTES_DETAILED_PROMPT
-    prompt = prompt_template.format(title=video_title, context=context)
+    prompt = NOTES_DETAILED_PROMPT_SINGLE.format(
+        title=video_title,
+        duration_str=duration_str,
+        context=context,
+    )
+    response = _call_gemini_with_fallback(
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.35,
+            max_output_tokens=8192,
+            top_p=0.9,
+        ),
+        model_candidates=NOTES_MODELS,
+        preferred_key="primary",
+    )
+    return response.text.strip()
 
-    try:
-        response = _call_gemini_with_fallback(
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.4,
-                max_output_tokens=8192 if mode == "detailed" else 2048,
-                top_p=0.9,
-            ),
-            model_candidates=NOTES_MODELS,
-            preferred_key="primary",
-        )
-        return response.text.strip()
-    except Exception as e:
-        raise RuntimeError(f"Notes generation failed: {str(e)}")
 
 
 # ── Phase 2: Quiz Generation ──────────────────────────────────────────────────
