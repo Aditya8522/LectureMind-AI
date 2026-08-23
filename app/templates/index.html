@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LectureMind AI — Intelligent YouTube Lecture Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Prevent browsers from caching stale JS/CSS — always fetch latest -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link rel="stylesheet" href="/static/css/style.css?v=20260822" />
+
+  <!-- YouTube IFrame API for seeking video to exact timestamps -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body class="theme-light">
+
+  <!-- ══════════════════════════ APP SHELL ══════════════════════════ -->
+  <div class="app-layout">
+
+    <!-- ── LEFT SIDEBAR (ThetaWave Inspired) ── -->
+    <aside class="app-sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand" onclick="goToMainPage()" style="cursor: pointer;" title="Go to Main Page">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="url(#brand-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="url(#brand-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="url(#brand-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs>
+                <linearGradient id="brand-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#818CF8"/>
+                  <stop offset="1" stop-color="#6366F1"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">LectureMind</span>
+            <span class="brand-badge">STUDIO</span>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- New Lecture CTA -->
+      <div class="sidebar-action">
+        <button class="btn btn-gradient-primary w-full" onclick="openNewVideoModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Lecture</span>
+        </button>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">STUDY WORKSPACE</div>
+        <button class="nav-item active" id="nav-chat" onclick="switchMainTab('chat')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>AI Tutor Chat</span>
+          <span class="nav-indicator"></span>
+        </button>
+
+        <button class="nav-item" id="nav-notes" onclick="switchMainTab('notes')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span>Smart Notes</span>
+        </button>
+
+        <button class="nav-item" id="nav-quiz" onclick="switchMainTab('quiz')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="10 8 16 12 10 16 10 8"></polygon>
+          </svg>
+          <span>Practice Quiz</span>
+        </button>
+
+        <button class="nav-item" id="nav-transcript" onclick="switchMainTab('transcript')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          <span>Full Transcript</span>
+        </button>
+      </nav>
+
+      <!-- Active Video Card in Sidebar -->
+      <div class="sidebar-recent" id="sidebar-recent-card">
+        <div class="nav-section-label">ACTIVE LECTURE</div>
+        <div class="active-video-card" id="active-video-badge">
+          <div class="video-dot-status"></div>
+          <div class="active-video-meta">
+            <div class="active-video-name" id="sidebar-video-title">No lecture selected</div>
+            <div class="active-video-chunks" id="sidebar-video-chunks">Paste a URL to start</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Previous Lectures (ChromaDB + SQLite) -->
+      <div class="sidebar-library" id="sidebar-library">
+        <div class="nav-section-label" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>PREVIOUS LECTURES</span>
+          <span class="library-count-badge" id="library-count-badge"></span>
+        </div>
+        <div class="library-list" id="library-list">
+          <div class="library-empty" id="library-empty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.35"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            <span>No previous lectures</span>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Bottom-Left User Profile / Login Widget (ThetaWave Style) -->
+      <div class="sidebar-user-section" id="sidebar-user-section">
+        <!-- Logged Out State -->
+        <div id="user-widget-logged-out" class="user-widget-box">
+          <button class="btn-sidebar-login" onclick="openAuthModal('login')">
+            <div class="user-login-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="user-login-meta">
+              <span class="user-login-title">Sign In / Register</span>
+              <span class="user-login-sub">Save study history</span>
+            </div>
+            <svg class="login-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Logged In State -->
+        <div id="user-widget-logged-in" class="user-widget-box hidden">
+          <div class="user-profile-pill" onclick="toggleUserDropdown(event)" id="user-profile-pill">
+            <div class="user-avatar" id="sidebar-user-avatar">--</div>
+            <div class="user-profile-meta">
+              <div class="user-profile-name" id="sidebar-user-name">User Account</div>
+              <div class="user-profile-email" id="sidebar-user-email">user@lecturemind.ai</div>
+            </div>
+            <button class="user-menu-btn" title="Account Menu">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="1.5"></circle>
+                <circle cx="12" cy="5" r="1.5"></circle>
+                <circle cx="12" cy="19" r="1.5"></circle>
+              </svg>
+            </button>
+          </div>
+
+          <!-- User Dropdown Popover Menu -->
+          <div class="user-dropdown-popover hidden" id="user-dropdown-menu">
+            <div class="dropdown-user-header">
+              <div class="dropdown-name" id="dropdown-user-name">User Account</div>
+              <div class="dropdown-email" id="dropdown-user-email">user@lecturemind.ai</div>
+              <div class="dropdown-stat-badge" id="dropdown-stats">⚡ 0 lectures indexed</div>
+            </div>
+            <div class="dropdown-hr"></div>
+
+            <button class="dropdown-btn-item" onclick="openNewVideoModal(); closeUserDropdown();">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>New Lecture</span>
+            </button>
+            <button class="dropdown-btn-item text-danger" onclick="handleLogout()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              <span>Log Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+
+    <!-- ── MAIN CONTENT AREA ── -->
+    <div class="main-wrapper">
+
+      <!-- Top Header Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="breadcrumb">
+            <span class="breadcrumb-root" onclick="goToMainPage()" style="cursor: pointer;" title="Go to Main Page">LectureMind</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-title" id="topbar-title">Ready for lecture</span>
+          </div>
+
+        </div>
+
+        <div class="topbar-right">
+          <button class="btn btn-theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch to Light / Dark mode">
+            <span class="theme-icon" id="theme-icon-container">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </span>
+            <span id="theme-toggle-label">Light Mode</span>
+          </button>
+          <button class="btn btn-glass-sm" onclick="openNewVideoModal()" title="Load New Video">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span>Change Lecture</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ── WORKSPACE ── -->
+      <main class="workspace-container">
+
+        <!-- VIEW 1: HERO / ONBOARDING (when no video is loaded yet) -->
+        <section id="onboarding-view" class="onboarding-view">
+          <div class="hero-glow-bg"></div>
+          
+          <div class="onboarding-card">
+            <div class="hero-pill">
+              <span class="hero-sparkle">✨</span>
+              <span>Next-Gen RAG Study Platform</span>
+            </div>
+
+            <h1 class="hero-heading">
+              Turn YouTube Lectures into <span class="gradient-text">Interactive Knowledge</span>
+            </h1>
+            <p class="hero-subheading">
+              Paste any lecture URL. We extract timestamps, embed semantic chunks in ChromaDB, and let you ask grounded questions with exact moment citations.
+            </p>
+
+            <!-- URL Input Bar -->
+            <div class="hero-input-box">
+              <div class="input-icon-wrapper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2">
+                  <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
+                  <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#818CF8"></polygon>
+                </svg>
+              </div>
+              <input
+                type="text"
+                id="youtube-url-input"
+                class="hero-url-input"
+                placeholder="Paste YouTube lecture URL (e.g. https://youtube.com/watch?v=...)"
+                autocomplete="off"
+              />
+
+              <button id="hero-process-btn" class="btn btn-hero-submit" onclick="handleProcessVideo()">
+                <span>Analyze Lecture</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Error Banner -->
+            <div id="onboarding-error" class="error-banner hidden"></div>
+
+            <!-- Processing Loader -->
+            <div id="onboarding-loader" class="processing-card hidden">
+              <div class="processing-header">
+                <div class="spinner-ring"></div>
+                <div class="processing-info">
+                  <div class="processing-title" id="loader-title">Ingesting Lecture Transcript...</div>
+                  <div class="processing-subtitle" id="loader-subtitle">Fetching captions, calculating timestamp boundaries & generating 3072-dim embeddings</div>
+                </div>
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill indeterminate"></div>
+              </div>
+            </div>
+
+            <!-- Quick Preset Lectures -->
+            <div class="preset-section">
+              <span class="preset-label">Try popular lectures:</span>
+              <div class="preset-chips">
+                <button class="preset-chip" onclick="loadPresetUrl('https://www.youtube.com/watch?v=aircAruvnKk')">
+                  🧠 3Blue1Brown: Neural Networks
+                </button>
+                <button class="preset-chip" onclick="loadPresetUrl('https://www.youtube.com/watch?v=RpLnQnurpLY')">
+                  ⚡ CS Lecture Demo
+                </button>
+                <button class="preset-chip" onclick="loadPresetUrl('https://www.youtube.com/watch?v=kCc8FmEb1nY')">
+                  🤖 Karpathy: Building GPT
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+
+
+
+        <!-- VIEW 2: DUAL-PANE STUDY WORKSPACE (shown after video is loaded) -->
+        <section id="study-workspace" class="study-workspace hidden">
+
+          <!-- ════ LEFT PANE: Video Player & Interactive Transcript ════ -->
+          <div class="stage-pane video-stage-pane">
+            <div class="pane-card player-card">
+              
+              <!-- Video Player Header -->
+              <div class="player-header">
+                <div class="video-meta-tag">
+                  <span class="live-pulse-badge">LIVE SYNC</span>
+                  <span id="player-channel-tag" class="channel-tag">Lecture Video</span>
+                </div>
+                <div class="player-actions">
+                  <button class="icon-tool-btn" onclick="seekRelative(-10)" title="Rewind 10s">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 4v6h6"></path>
+                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                    </svg>
+                  </button>
+                  <button class="icon-tool-btn" onclick="seekRelative(10)" title="Forward 10s">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M23 4v6h-6"></path>
+                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Embedded YouTube Iframe Container -->
+              <div class="video-frame-container">
+                <div id="youtube-player"></div>
+              </div>
+
+              <!-- Lecture Info Row -->
+              <div class="video-details-row">
+                <h2 class="lecture-title-text" id="lecture-title-display">Lecture Title</h2>
+                <div class="lecture-meta-badges">
+                  <span class="meta-pill" id="chunk-count-badge">0 Chunks</span>
+                  <span class="meta-pill text-emerald" id="status-pill">Ready</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Interactive Transcript Drawer -->
+            <div class="pane-card transcript-drawer-card">
+              <div class="drawer-header">
+                <div class="drawer-title-group">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <span>Timestamped Transcript</span>
+                </div>
+                <div class="transcript-search-wrapper">
+                  <input
+                    type="text"
+                    id="transcript-filter-input"
+                    class="transcript-filter"
+                    placeholder="Search in transcript..."
+                    oninput="filterTranscript(this.value)"
+                  />
+                </div>
+              </div>
+
+              <!-- Scrollable Segments Container -->
+              <div class="transcript-segments-list" id="transcript-segments-container">
+                <div class="transcript-loading-state">Transcript synchronized with video playback...</div>
+              </div>
+            </div>
+
+          </div>
+
+
+          <!-- ════ RIGHT PANE: Multi-Tab AI Hub ════ -->
+          <div class="stage-pane study-hub-pane">
+            
+            <!-- Study Hub Tabs Bar -->
+            <div class="hub-tabs-nav">
+              <button class="hub-tab active" id="tab-btn-chat" onclick="switchMainTab('chat')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>AI Tutor Chat</span>
+              </button>
+
+              <button class="hub-tab" id="tab-btn-notes" onclick="switchMainTab('notes')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span>Smart Notes</span>
+                <span class="tab-badge-new">Phase 2</span>
+              </button>
+
+              <button class="hub-tab" id="tab-btn-quiz" onclick="switchMainTab('quiz')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                </svg>
+                <span>Practice Quiz</span>
+                <span class="tab-badge-new">Phase 2</span>
+              </button>
+            </div>
+
+            <!-- ── TAB 1: AI CHAT TUTOR ── -->
+            <div class="tab-content-panel active" id="panel-chat">
+              
+              <!-- Chat Conversation Scroll Area -->
+              <div class="chat-thread" id="chat-messages-container">
+                
+                <!-- Initial Assistant Welcome Card -->
+                <div class="chat-welcome-card">
+                  <div class="welcome-header">
+                    <div class="welcome-badge">
+                      <span class="welcome-sparkle">✨</span>
+                      <span>AI Lecture Tutor Ready</span>
+                    </div>
+                    <h3 class="welcome-title">Ask anything about this lecture</h3>
+                    <p class="welcome-subtitle">
+                      I've indexed all timestamped transcript chunks with exact citations. Ask any question, or pick a study action below:
+                    </p>
+                  </div>
+
+                  <div class="welcome-cards-grid">
+                    <div class="welcome-action-card" onclick="askQuickPrompt('Explain the core concept and main idea of this lecture in simple terms')">
+                      <div class="action-card-header">
+                        <span class="action-card-icon">💡</span>
+                        <span class="action-card-title">Core Concept Breakdown</span>
+                      </div>
+                      <p class="action-card-desc">Get a clear, beginner-friendly explanation of what this lecture teaches.</p>
+                    </div>
+
+                    <div class="welcome-action-card" onclick="askQuickPrompt('Summarize all key formulas, terms, and definitions with timestamps')">
+                      <div class="action-card-header">
+                        <span class="action-card-icon">📝</span>
+                        <span class="action-card-title">Key Definitions & Formulas</span>
+                      </div>
+                      <p class="action-card-desc">Quick reference list of critical terminology and formulas.</p>
+                    </div>
+
+                    <div class="welcome-action-card" onclick="askQuickPrompt('What are the code examples or practical steps demonstrated in this video?')">
+                      <div class="action-card-header">
+                        <span class="action-card-icon">💻</span>
+                        <span class="action-card-title">Code & Implementations</span>
+                      </div>
+                      <p class="action-card-desc">Review step-by-step code snippets and practical demos.</p>
+                    </div>
+
+                    <div class="welcome-action-card" onclick="askQuickPrompt('Give me 3 important interview and exam questions based on this video')">
+                      <div class="action-card-header">
+                        <span class="action-card-icon">🎯</span>
+                        <span class="action-card-title">Exam & Interview Prep</span>
+                      </div>
+                      <p class="action-card-desc">Test your understanding with targeted questions from the lecture.</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+
+              <!-- Suggested Prompts Bar -->
+              <div class="prompt-suggestions-row" id="suggestions-row">
+                <div class="suggestions-slider" id="suggestion-chips-container"></div>
+              </div>
+
+              <!-- Chat Input Box -->
+              <div class="chat-input-container">
+                <div class="chat-input-glass">
+                  <textarea
+                    id="chat-textarea"
+                    class="chat-textarea"
+                    rows="1"
+                    placeholder="Ask anything about this lecture... (Press Enter to send)"
+                    onkeydown="handleChatKeyDown(event)"
+                  ></textarea>
+                  <button id="send-message-btn" class="btn btn-send-gradient" onclick="sendChatMessage()" title="Send Message">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
+                </div>
+                <div class="input-bottom-hints">
+                  <span>💡 Click any timestamp citation (e.g. <b>▶ 04:12</b>) to jump the video directly to that moment.</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- ── TAB 2: SMART NOTES (Phase 2) ── -->
+            <div class="tab-content-panel" id="panel-notes">
+
+              <!-- Notes Controls Toolbar -->
+              <div class="panel-toolbar">
+                <div class="toolbar-left">
+                  <span class="toolbar-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    AI Smart Notes
+                  </span>
+                  <!-- Mode Toggle Pills -->
+                  <div class="mode-toggle-group" id="notes-mode-toggle">
+                    <button class="mode-pill active" data-mode="summary" onclick="setNotesMode('summary')">Quick Summary</button>
+                    <button class="mode-pill" data-mode="detailed" onclick="setNotesMode('detailed')">Detailed Notes</button>
+                  </div>
+                </div>
+                <div class="toolbar-right">
+                  <!-- Download dropdown -->
+                  <div class="download-dropdown-wrap" id="download-notes-wrap" style="display:none; position:relative;">
+                    <button class="btn btn-glass-sm" id="download-notes-btn" onclick="toggleDownloadMenu()" title="Download Notes">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                      <span>Download</span>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <div class="download-menu" id="download-menu" style="display:none;">
+                      <button class="download-menu-item" onclick="downloadNotes('md')">
+                        <span class="dl-icon">📄</span> Markdown (.md)
+                      </button>
+                      <button class="download-menu-item" onclick="downloadNotes('pdf')">
+                        <span class="dl-icon">🔴</span> PDF (.pdf)
+                      </button>
+                      <button class="download-menu-item" onclick="downloadNotes('docx')">
+                        <span class="dl-icon">🔵</span> Word (.docx)
+                      </button>
+                    </div>
+                  </div>
+
+                  <button class="btn btn-gradient-primary btn-sm" id="generate-notes-btn" onclick="generateNotes()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    Generate Notes
+                  </button>
+                </div>
+              </div>
+
+              <!-- Notes Loading State -->
+              <div id="notes-loading" class="feature-loading-card hidden">
+                <div class="spinner-ring"></div>
+                <div class="loading-text">Gemini is reading the entire lecture and generating structured notes...</div>
+              </div>
+
+              <!-- Notes Empty State -->
+              <div id="notes-empty" class="feature-empty-card">
+                <div class="feature-empty-icon">📝</div>
+                <div class="feature-empty-title">No notes generated yet</div>
+                <div class="feature-empty-sub">Choose a mode above and click <strong>Generate Notes</strong> to create AI-powered study notes from this lecture.</div>
+              </div>
+
+              <!-- Notes Output Area -->
+              <div id="notes-output" class="notes-output-card hidden">
+                <div class="notes-meta-bar">
+                  <span class="notes-mode-badge" id="notes-mode-badge">Summary</span>
+                  <span class="notes-timestamp-label" id="notes-generated-at"></span>
+                </div>
+                <div class="notes-markdown-body" id="notes-content-body"></div>
+              </div>
+
+            </div>
+
+
+            <!-- ── TAB 3: PRACTICE QUIZ (Phase 2) ── -->
+            <div class="tab-content-panel" id="panel-quiz">
+
+              <!-- Quiz Controls Toolbar -->
+              <div class="panel-toolbar">
+                <div class="toolbar-left">
+                  <span class="toolbar-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                    Practice Quiz
+                  </span>
+                  <!-- Number of Questions Selector -->
+                  <div class="mode-toggle-group" id="quiz-num-toggle">
+                    <button class="mode-pill" data-num="3" onclick="setQuizNum(3)">3 Q's</button>
+                    <button class="mode-pill active" data-num="5" onclick="setQuizNum(5)">5 Q's</button>
+                    <button class="mode-pill" data-num="10" onclick="setQuizNum(10)">10 Q's</button>
+                  </div>
+                </div>
+                <div class="toolbar-right">
+                  <button class="btn btn-gradient-primary btn-sm" id="generate-quiz-btn" onclick="generateQuiz()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    Generate Quiz
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quiz Loading State -->
+              <div id="quiz-loading" class="feature-loading-card hidden">
+                <div class="spinner-ring"></div>
+                <div class="loading-text">Gemini is crafting challenging MCQ questions from this lecture...</div>
+              </div>
+
+              <!-- Quiz Empty State -->
+              <div id="quiz-empty" class="feature-empty-card">
+                <div class="feature-empty-icon">🎯</div>
+                <div class="feature-empty-title">No quiz generated yet</div>
+                <div class="feature-empty-sub">Select number of questions and click <strong>Generate Quiz</strong> to test your understanding.</div>
+              </div>
+
+              <!-- Quiz Questions Area -->
+              <div id="quiz-questions-area" class="quiz-questions-area hidden">
+                <div id="quiz-questions-list"></div>
+
+                <!-- Submit Button -->
+                <div class="quiz-submit-row">
+                  <button class="btn btn-gradient-primary" id="quiz-submit-btn" onclick="submitQuiz()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Submit Answers
+                  </button>
+                  <span class="quiz-answered-count" id="quiz-answered-count">0 / 0 answered</span>
+                </div>
+              </div>
+
+              <!-- Quiz Results Area -->
+              <div id="quiz-results-area" class="quiz-results-area hidden">
+
+                <!-- Score Badge -->
+                <div class="score-header-card">
+                  <div class="score-ring-wrapper">
+                    <svg class="score-ring-svg" viewBox="0 0 120 120">
+                      <circle class="score-ring-bg" cx="60" cy="60" r="50" />
+                      <circle class="score-ring-fill" id="score-ring-fill" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="314"/>
+                    </svg>
+                    <div class="score-ring-label">
+                      <span class="score-percent" id="score-percent-display">0%</span>
+                      <span class="score-sub">Score</span>
+                    </div>
+                  </div>
+                  <div class="score-meta">
+                    <div class="score-stat"><span class="stat-val" id="score-correct">0</span><span class="stat-lbl">Correct</span></div>
+                    <div class="score-stat"><span class="stat-val" id="score-wrong">0</span><span class="stat-lbl">Wrong</span></div>
+                    <div class="score-stat"><span class="stat-val" id="score-total">0</span><span class="stat-lbl">Total</span></div>
+                  </div>
+                  <button class="btn btn-glass-sm" onclick="retakeQuiz()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"></path><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                    New Quiz
+                  </button>
+                </div>
+
+                <!-- Per-Question Results -->
+                <div id="quiz-results-list" class="quiz-results-list"></div>
+
+              </div>
+
+            </div>
+
+
+            <!-- ── TAB 4: RAW TRANSCRIPT ── -->
+            <div class="tab-content-panel" id="panel-transcript">
+              <div class="raw-transcript-view" id="raw-transcript-text-container">
+                <div class="transcript-loading-state">Load a video to view full transcript text.</div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- ════════════════════ MODAL FOR NEW LECTURE ════════════════════ -->
+  <div id="new-video-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Load YouTube Lecture</h3>
+        <button class="modal-close-btn" onclick="closeNewVideoModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtitle">Paste a new YouTube lecture URL to ingest, chunk, and embed its transcript.</p>
+        <div class="modal-input-group">
+          <input
+            type="text"
+            id="modal-url-input"
+            class="hero-url-input"
+            placeholder="https://www.youtube.com/watch?v=..."
+            onkeydown="if(event.key==='Enter') submitModalVideo()"
+          />
+        </div>
+        <div id="modal-error" class="error-banner hidden"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-glass-sm" onclick="closeNewVideoModal()">Cancel</button>
+        <button id="modal-submit-btn" class="btn btn-gradient-primary" onclick="submitModalVideo()">
+          Process Lecture
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ AUTH MODAL (ThetaWave Style) ════════════════ -->
+  <div id="auth-modal" class="modal-overlay hidden">
+    <div class="modal-backdrop" onclick="closeAuthModal()"></div>
+    <div class="auth-modal-card">
+      <button class="modal-close-btn" onclick="closeAuthModal()" title="Close">&times;</button>
+
+      <!-- Brand Header -->
+      <div class="auth-header">
+        <div class="auth-brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h2 class="auth-title" id="auth-modal-title">Sign In to LectureMind</h2>
+        <p class="auth-subtitle" id="auth-modal-subtitle">Save your study history, personalized notes, and interactive timestamped Q&A.</p>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="auth-tab-login" onclick="switchAuthTab('login')">Sign In</button>
+        <button type="button" class="auth-tab" id="auth-tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
+      </div>
+
+      <!-- Auth Error Banner -->
+      <div id="auth-error-banner" class="error-banner hidden"></div>
+
+      <!-- Auth Form -->
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <div class="auth-field" id="auth-name-field" style="display: none;">
+          <label class="auth-label">Full Name</label>
+          <input type="text" id="auth-name-input" class="auth-input" placeholder="e.g. Aditya Mali" autocomplete="name" />
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label">Email Address</label>
+          <input type="email" id="auth-email-input" class="auth-input" placeholder="you@example.com" required autocomplete="email" />
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label">Password</label>
+          <input type="password" id="auth-password-input" class="auth-input" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+
+        <button type="submit" class="btn btn-gradient-primary w-full auth-submit-btn" id="auth-submit-btn">
+          <span id="auth-submit-text">Sign In</span>
+        </button>
+      </form>
+
+      <div class="auth-divider"><span>OR</span></div>
+
+      <!-- 1-Click Demo Guest Button -->
+      <button type="button" class="btn btn-guest-demo w-full" onclick="handleGuestLogin()">
+        <span class="guest-sparkle">✨</span>
+        <span>Continue as Demo Student (1-Click)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+
+  <div id="toast-notification" class="toast-card hidden"></div>
+
+  <script src="/static/js/app.js?v=20260822_2"></script>
+</body>
+</html>
+
