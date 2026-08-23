@@ -42,5 +42,9 @@ deep-translator>=1.11.4
 reportlab>=4.2.2
 python-docx>=1.1.2
 
+# ── LaTeX Math → Unicode for PDF/DOCX export ──────────────────────────────────
+pylatexenc>=2.10
+
+
 
 
