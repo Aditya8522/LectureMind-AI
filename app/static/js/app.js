@@ -1045,24 +1045,20 @@ function closeNewVideoModal() {
 
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
-  const expandTab = document.getElementById("sidebar-expand-tab");
   if (!sidebar) return;
   sidebar.classList.toggle("collapsed");
-  const isCollapsed = sidebar.classList.contains("collapsed");
-  if (expandTab) {
-    expandTab.style.display = isCollapsed ? "inline-flex" : "none";
-  }
 }
 
 function toggleSidebarIfCollapsed(event) {
+  if (event) event.stopPropagation();
   const sidebar = document.getElementById("sidebar");
   if (sidebar && sidebar.classList.contains("collapsed")) {
-    if (event) event.stopPropagation();
     toggleSidebar();
   } else {
     goToMainPage();
   }
 }
+
 
 
 

@@ -2510,34 +2510,7 @@ body.theme-light .btn-guest-demo:hover {
   white-space: nowrap;
 }
 
-/* ── Floating Return Tabs ── */
-.sidebar-expand-tab {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.4rem 0.75rem;
-  background: var(--bg-surface-2);
-  border: 1px solid var(--border-highlight);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  transition: all var(--transition-fast);
-}
-
-.sidebar-expand-tab:hover {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary-light);
-  transform: translateX(2px);
-}
-
+/* ── Floating Outline Return Tab ── */
 .outline-expand-tab {
   position: absolute;
   top: 14px;
@@ -2548,7 +2521,7 @@ body.theme-light .btn-guest-demo:hover {
   gap: 0.45rem;
   padding: 0.4rem 0.75rem;
   background: var(--bg-surface-2);
-  border: 1px solid var(--border-highlight);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: 0.78rem;
@@ -2559,11 +2532,12 @@ body.theme-light .btn-guest-demo:hover {
 }
 
 .outline-expand-tab:hover {
-  background: var(--primary);
-  color: #fff;
+  background: var(--bg-surface-3);
+  color: var(--primary-light);
   border-color: var(--primary-light);
   transform: translateX(2px);
 }
+
 
 /* ── THETAWAVE READING CANVAS ── */
 .thetawave-reading-canvas {
