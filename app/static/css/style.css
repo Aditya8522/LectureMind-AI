@@ -1662,15 +1662,107 @@ body.theme-light .btn-guest-demo:hover {
 }
 
 
-/* ══════════════════════════ DUAL-PANE STUDY WORKSPACE ══════════════════════════ */
+/* ══════════════════════════ STUDY WORKSPACE & DEDICATED SESSIONS ══════════════════════════ */
 .study-workspace {
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.15fr 1fr;
   gap: 1rem;
   padding: 1rem 1.25rem;
   overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+/* ── Split Screen Session (AI Tutor Chat & Video) ── */
+.study-workspace.mode-chat {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+.study-workspace.mode-chat .video-stage-pane {
+  display: flex;
+}
+.study-workspace.mode-chat .study-hub-pane {
+  display: flex;
+}
+
+/* ── Dedicated Full-Width Smart Notes Studio (Only Notes) ── */
+.study-workspace.mode-notes {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.study-workspace.mode-notes .video-stage-pane {
+  display: none !important;
+}
+.study-workspace.mode-notes .study-hub-pane {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.study-workspace.mode-notes #panel-notes {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ── Dedicated Full-Width Practice Quiz Arena (Only Quiz) ── */
+.study-workspace.mode-quiz {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.study-workspace.mode-quiz .video-stage-pane {
+  display: none !important;
+}
+.study-workspace.mode-quiz .study-hub-pane {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.study-workspace.mode-quiz #panel-quiz {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ── Dedicated Full-Width Transcript Session ── */
+.study-workspace.mode-transcript {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.study-workspace.mode-transcript .video-stage-pane {
+  display: none !important;
+}
+.study-workspace.mode-transcript .study-hub-pane {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .stage-pane {
@@ -1680,6 +1772,7 @@ body.theme-light .btn-guest-demo:hover {
   height: 100%;
   overflow: hidden;
 }
+
 
 .pane-card {
   background: var(--bg-glass-card);
@@ -1925,52 +2018,186 @@ body.theme-light .btn-guest-demo:hover {
   overflow: hidden;
 }
 
-/* ── HUB TABS ── */
-.hub-tabs-nav {
+/* ── CHAT PANE HEADER (Split Screen Session) ── */
+.chat-pane-header {
   display: flex;
   align-items: center;
-  padding: 0.5rem 0.85rem;
+  justify-content: space-between;
+  padding: 0.75rem 1.15rem;
   background: var(--bg-surface-1);
   border-bottom: 1px solid var(--border-subtle);
-  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
-.hub-tab {
+.chat-header-title-box {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.95rem;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
+  gap: 0.65rem;
+}
+
+.chat-sparkle-icon {
+  font-size: 1.15rem;
+}
+
+.chat-title-main {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.chat-subtitle-main {
+  font-size: 0.72rem;
   color: var(--text-muted);
-  font-size: 0.85rem;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* ── DEDICATED WORKSPACE HEADER (Sticky Top Bar for Notes & Quiz) ── */
+.dedicated-workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.75rem;
+  background: var(--bg-surface-1);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  backdrop-filter: blur(16px);
+  flex-shrink: 0;
+  gap: 1.25rem;
+}
+
+.dedicated-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.btn-back-chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition: all var(--transition-fast);
 }
 
-.hub-tab:hover {
-  color: var(--text-secondary);
-  background: var(--bg-surface-2);
+.btn-back-chat:hover {
+  background: var(--primary-subtle);
+  color: var(--primary-light);
+  border-color: var(--primary-light);
+  transform: translateX(-2px);
 }
 
-.hub-tab.active {
-  color: #fff;
-  background: var(--primary-subtle);
+.dedicated-header-title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.dedicated-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge-notes-studio {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
   border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
-.tab-badge-new {
+.badge-quiz-arena {
   font-size: 0.65rem;
-  padding: 0.1rem 0.35rem;
-  background: var(--bg-surface-3);
-  color: var(--primary-light);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.5rem;
   border-radius: 4px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.notes-meta-pill {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.dedicated-lecture-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
+  margin: 0;
+}
+
+.dedicated-header-center {
+  display: flex;
+  align-items: center;
+}
+
+.dedicated-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── DEDICATED FULL-PAGE CANVASES ── */
+.dedicated-notes-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 2.5rem 6rem;
+  max-width: 1050px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dedicated-quiz-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 2.5rem 6rem;
+  max-width: 880px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.notes-reading-meta {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 /* ── TAB PANELS ── */
 .tab-content-panel {
+
   flex: 1;
   display: none;
   flex-direction: column;
@@ -3632,12 +3859,54 @@ body.theme-light .stat-lbl {
 }
 body.theme-light .result-option {
   background: #f8fafc;
-  color: #334155;
-}
 body.theme-light .result-explanation {
   background: #f8fafc;
   color: #475569;
   border: 1px solid #e2e8f0;
 }
+
+body.theme-light .chat-pane-header {
+
+  background: #ffffff;
+  border-bottom-color: #e2e8f0;
+}
+body.theme-light .chat-title-main {
+  color: #0f172a;
+}
+body.theme-light .chat-subtitle-main {
+  color: #64748b;
+}
+
+body.theme-light .dedicated-workspace-header {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom-color: #e2e8f0;
+}
+body.theme-light .dedicated-lecture-title {
+  color: #0f172a;
+}
+body.theme-light .btn-back-chat {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+body.theme-light .btn-back-chat:hover {
+  background: #eef2ff;
+  color: #4f46e5;
+  border-color: #6366f1;
+}
+body.theme-light .badge-notes-studio {
+  background: #ede9fe;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+body.theme-light .badge-quiz-arena {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+body.theme-light .notes-reading-meta {
+  color: #64748b;
+}
+
 
 

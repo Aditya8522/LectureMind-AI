@@ -11,7 +11,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="/static/css/style.css?v=20260823b" />
+  <link rel="stylesheet" href="/static/css/style.css?v=20260824_sessions" />
 
   <!-- KaTeX — LaTeX math rendering for Smart Notes formulas -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
@@ -401,40 +401,33 @@
           </div>
 
 
-          <!-- ════ RIGHT PANE: Multi-Tab AI Hub ════ -->
+          <!-- ════ RIGHT PANE / DEDICATED SESSIONS CONTAINER ════ -->
           <div class="stage-pane study-hub-pane">
-            
-            <!-- Study Hub Tabs Bar -->
-            <div class="hub-tabs-nav">
-              <button class="hub-tab active" id="tab-btn-chat" onclick="switchMainTab('chat')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <span>AI Tutor Chat</span>
-              </button>
 
-              <button class="hub-tab" id="tab-btn-notes" onclick="switchMainTab('notes')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                <span>Smart Notes</span>
-                <span class="tab-badge-new">Phase 2</span>
-              </button>
-
-              <button class="hub-tab" id="tab-btn-quiz" onclick="switchMainTab('quiz')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polygon points="10 8 16 12 10 16 10 8"></polygon>
-                </svg>
-                <span>Practice Quiz</span>
-                <span class="tab-badge-new">Phase 2</span>
-              </button>
-            </div>
-
-            <!-- ── TAB 1: AI CHAT TUTOR ── -->
+            <!-- ── SESSION 1: AI CHAT TUTOR (Split Screen with Video) ── -->
             <div class="tab-content-panel active" id="panel-chat">
               
+              <!-- Chat Pane Header (Clean ThetaWave/Obsidian Style) -->
+              <div class="chat-pane-header">
+                <div class="chat-header-title-box">
+                  <div class="chat-sparkle-icon">✨</div>
+                  <div>
+                    <div class="chat-title-main">AI Lecture Tutor</div>
+                    <div class="chat-subtitle-main">Interactive grounded chat with exact timestamp citations</div>
+                  </div>
+                </div>
+                <div class="chat-header-actions">
+                  <button class="btn btn-glass-sm" onclick="switchMainTab('notes')" title="Open Dedicated Full-Screen Notes Workspace">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    <span>Smart Notes</span>
+                  </button>
+                  <button class="btn btn-glass-sm" onclick="switchMainTab('quiz')" title="Open Dedicated Quiz Arena">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                    <span>Practice Quiz</span>
+                  </button>
+                </div>
+              </div>
+
               <!-- Chat Conversation Scroll Area -->
               <div class="chat-thread" id="chat-messages-container">
                 
@@ -488,7 +481,6 @@
 
               </div>
 
-
               <!-- Suggested Prompts Bar -->
               <div class="prompt-suggestions-row" id="suggestions-row">
                 <div class="suggestions-slider" id="suggestion-chips-container"></div>
@@ -518,23 +510,38 @@
 
             </div>
 
-            <!-- ── TAB 2: SMART NOTES (Phase 2) ── -->
+            <!-- ── SESSION 2: DEDICATED SMART NOTES STUDIO (Full Width) ── -->
             <div class="tab-content-panel" id="panel-notes">
 
-              <!-- Notes Controls Toolbar -->
-              <div class="panel-toolbar">
-                <div class="toolbar-left">
-                  <span class="toolbar-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                    AI Smart Notes
-                  </span>
-                  <!-- Mode Toggle Pills -->
+              <!-- Dedicated Notes Top Bar -->
+              <div class="dedicated-workspace-header">
+                <div class="dedicated-header-left">
+                  <button class="btn btn-back-chat" onclick="switchMainTab('chat')" title="Back to Video & AI Chat">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <line x1="19" y1="12" x2="5" y2="12"></line>
+                      <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Video & Chat</span>
+                  </button>
+                  <div class="dedicated-header-title-box">
+                    <div class="dedicated-badge-row">
+                      <span class="badge-notes-studio">📖 SMART NOTES STUDIO</span>
+                      <span class="notes-meta-pill" id="notes-duration-pill">⏱️ Ready</span>
+                    </div>
+                    <h2 class="dedicated-lecture-title" id="notes-lecture-title">Lecture Notes</h2>
+                  </div>
+                </div>
+
+                <!-- Center: Mode Selector -->
+                <div class="dedicated-header-center">
                   <div class="mode-toggle-group" id="notes-mode-toggle">
                     <button class="mode-pill active" data-mode="summary" onclick="setNotesMode('summary')">Quick Summary</button>
                     <button class="mode-pill" data-mode="detailed" onclick="setNotesMode('detailed')">Detailed Notes</button>
                   </div>
                 </div>
-                <div class="toolbar-right">
+
+                <!-- Right: Actions -->
+                <div class="dedicated-header-right">
                   <!-- Download dropdown -->
                   <div class="download-dropdown-wrap" id="download-notes-wrap" style="display:none; position:relative;">
                     <button class="btn btn-glass-sm" id="download-notes-btn" onclick="toggleDownloadMenu()" title="Download Notes">
@@ -557,123 +564,151 @@
 
                   <button class="btn btn-gradient-primary btn-sm" id="generate-notes-btn" onclick="generateNotes()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    Generate Notes
+                    <span>Generate Notes</span>
                   </button>
                 </div>
               </div>
 
-              <!-- Notes Loading State -->
-              <div id="notes-loading" class="feature-loading-card hidden">
-                <div class="spinner-ring"></div>
-                <div class="loading-text">Gemini is reading the entire lecture and generating structured notes...</div>
-              </div>
-
-              <!-- Notes Empty State -->
-              <div id="notes-empty" class="feature-empty-card">
-                <div class="feature-empty-icon">📝</div>
-                <div class="feature-empty-title">No notes generated yet</div>
-                <div class="feature-empty-sub">Choose a mode above and click <strong>Generate Notes</strong> to create AI-powered study notes from this lecture.</div>
-              </div>
-
-              <!-- Notes Output Area -->
-              <div id="notes-output" class="notes-output-card hidden">
-                <div class="notes-meta-bar">
-                  <span class="notes-mode-badge" id="notes-mode-badge">Summary</span>
-                  <span class="notes-timestamp-label" id="notes-generated-at"></span>
+              <!-- Dedicated Notes Canvas (Centered, Roomy Obsidian/ThetaWave Style) -->
+              <div class="dedicated-notes-canvas">
+                <!-- Notes Loading State -->
+                <div id="notes-loading" class="feature-loading-card hidden">
+                  <div class="spinner-ring"></div>
+                  <div class="loading-text">Gemini is synthesizing the entire lecture and generating master study notes...</div>
                 </div>
-                <div class="notes-markdown-body" id="notes-content-body"></div>
+
+                <!-- Notes Empty State -->
+                <div id="notes-empty" class="feature-empty-card">
+                  <div class="feature-empty-icon">📝</div>
+                  <div class="feature-empty-title">No notes generated yet for this lecture</div>
+                  <div class="feature-empty-sub">Choose a mode above (Quick Summary or Detailed Notes) and click <strong>Generate Notes</strong> to create comprehensive study notes.</div>
+                  <button class="btn btn-gradient-primary" style="margin-top: 1rem;" onclick="generateNotes()">
+                    ⚡ Generate Notes Now
+                  </button>
+                </div>
+
+                <!-- Notes Output Area -->
+                <div id="notes-output" class="notes-output-card hidden">
+                  <div class="notes-meta-bar">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span class="notes-mode-badge" id="notes-mode-badge">Summary</span>
+                      <span class="notes-timestamp-label" id="notes-generated-at"></span>
+                    </div>
+                    <div class="notes-reading-meta">
+                      <span>Obsidian Markdown & KaTeX Math Typeset</span>
+                    </div>
+                  </div>
+                  <div class="notes-markdown-body" id="notes-content-body"></div>
+                </div>
               </div>
 
             </div>
 
-
-            <!-- ── TAB 3: PRACTICE QUIZ (Phase 2) ── -->
+            <!-- ── SESSION 3: DEDICATED PRACTICE QUIZ ARENA (Full Width) ── -->
             <div class="tab-content-panel" id="panel-quiz">
 
-              <!-- Quiz Controls Toolbar -->
-              <div class="panel-toolbar">
-                <div class="toolbar-left">
-                  <span class="toolbar-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
-                    Practice Quiz
-                  </span>
-                  <!-- Number of Questions Selector -->
+              <!-- Dedicated Quiz Top Bar -->
+              <div class="dedicated-workspace-header">
+                <div class="dedicated-header-left">
+                  <button class="btn btn-back-chat" onclick="switchMainTab('chat')" title="Back to Video & AI Chat">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <line x1="19" y1="12" x2="5" y2="12"></line>
+                      <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Video & Chat</span>
+                  </button>
+                  <div class="dedicated-header-title-box">
+                    <div class="dedicated-badge-row">
+                      <span class="badge-quiz-arena">🎯 PRACTICE ARENA</span>
+                      <span class="notes-meta-pill">Interactive MCQ</span>
+                    </div>
+                    <h2 class="dedicated-lecture-title" id="quiz-lecture-title">Practice Quiz</h2>
+                  </div>
+                </div>
+
+                <!-- Center: Number of Questions Selector -->
+                <div class="dedicated-header-center">
                   <div class="mode-toggle-group" id="quiz-num-toggle">
                     <button class="mode-pill" data-num="3" onclick="setQuizNum(3)">3 Q's</button>
                     <button class="mode-pill active" data-num="5" onclick="setQuizNum(5)">5 Q's</button>
                     <button class="mode-pill" data-num="10" onclick="setQuizNum(10)">10 Q's</button>
                   </div>
                 </div>
-                <div class="toolbar-right">
+
+                <!-- Right: Action -->
+                <div class="dedicated-header-right">
                   <button class="btn btn-gradient-primary btn-sm" id="generate-quiz-btn" onclick="generateQuiz()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    Generate Quiz
+                    <span>Generate Quiz</span>
                   </button>
                 </div>
               </div>
 
-              <!-- Quiz Loading State -->
-              <div id="quiz-loading" class="feature-loading-card hidden">
-                <div class="spinner-ring"></div>
-                <div class="loading-text">Gemini is crafting challenging MCQ questions from this lecture...</div>
-              </div>
-
-              <!-- Quiz Empty State -->
-              <div id="quiz-empty" class="feature-empty-card">
-                <div class="feature-empty-icon">🎯</div>
-                <div class="feature-empty-title">No quiz generated yet</div>
-                <div class="feature-empty-sub">Select number of questions and click <strong>Generate Quiz</strong> to test your understanding.</div>
-              </div>
-
-              <!-- Quiz Questions Area -->
-              <div id="quiz-questions-area" class="quiz-questions-area hidden">
-                <div id="quiz-questions-list"></div>
-
-                <!-- Submit Button -->
-                <div class="quiz-submit-row">
-                  <button class="btn btn-gradient-primary" id="quiz-submit-btn" onclick="submitQuiz()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    Submit Answers
-                  </button>
-                  <span class="quiz-answered-count" id="quiz-answered-count">0 / 0 answered</span>
+              <!-- Dedicated Quiz Canvas -->
+              <div class="dedicated-quiz-canvas">
+                <!-- Quiz Loading State -->
+                <div id="quiz-loading" class="feature-loading-card hidden">
+                  <div class="spinner-ring"></div>
+                  <div class="loading-text">Gemini is crafting challenging MCQ questions from this lecture...</div>
                 </div>
-              </div>
 
-              <!-- Quiz Results Area -->
-              <div id="quiz-results-area" class="quiz-results-area hidden">
+                <!-- Quiz Empty State -->
+                <div id="quiz-empty" class="feature-empty-card">
+                  <div class="feature-empty-icon">🎯</div>
+                  <div class="feature-empty-title">No quiz generated yet</div>
+                  <div class="feature-empty-sub">Select number of questions above and click <strong>Generate Quiz</strong> to test your retention.</div>
+                  <button class="btn btn-gradient-primary" style="margin-top: 1rem;" onclick="generateQuiz()">
+                    ⚡ Generate Quiz Now
+                  </button>
+                </div>
 
-                <!-- Score Badge -->
-                <div class="score-header-card">
-                  <div class="score-ring-wrapper">
-                    <svg class="score-ring-svg" viewBox="0 0 120 120">
-                      <circle class="score-ring-bg" cx="60" cy="60" r="50" />
-                      <circle class="score-ring-fill" id="score-ring-fill" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="314"/>
-                    </svg>
-                    <div class="score-ring-label">
-                      <span class="score-percent" id="score-percent-display">0%</span>
-                      <span class="score-sub">Score</span>
+                <!-- Quiz Questions Area -->
+                <div id="quiz-questions-area" class="quiz-questions-area hidden">
+                  <div id="quiz-questions-list"></div>
+
+                  <!-- Submit Button -->
+                  <div class="quiz-submit-row">
+                    <button class="btn btn-gradient-primary" id="quiz-submit-btn" onclick="submitQuiz()">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <span>Submit Answers</span>
+                    </button>
+                    <span class="quiz-answered-count" id="quiz-answered-count">0 / 0 answered</span>
+                  </div>
+                </div>
+
+                <!-- Quiz Results Area -->
+                <div id="quiz-results-area" class="quiz-results-area hidden">
+                  <!-- Score Header Card -->
+                  <div class="score-header-card">
+                    <div class="score-ring-wrapper">
+                      <svg class="score-ring-svg" viewBox="0 0 120 120">
+                        <circle class="score-ring-bg" cx="60" cy="60" r="50" />
+                        <circle class="score-ring-fill" id="score-ring-fill" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="314"/>
+                      </svg>
+                      <div class="score-ring-label">
+                        <span class="score-percent" id="score-percent-display">0%</span>
+                        <span class="score-sub">Score</span>
+                      </div>
                     </div>
+                    <div class="score-meta">
+                      <div class="score-stat"><span class="stat-val" id="score-correct">0</span><span class="stat-lbl">Correct</span></div>
+                      <div class="score-stat"><span class="stat-val" id="score-wrong">0</span><span class="stat-lbl">Wrong</span></div>
+                      <div class="score-stat"><span class="stat-val" id="score-total">0</span><span class="stat-lbl">Total</span></div>
+                    </div>
+                    <button class="btn btn-glass-sm" onclick="retakeQuiz()">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"></path><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                      <span>New Quiz</span>
+                    </button>
                   </div>
-                  <div class="score-meta">
-                    <div class="score-stat"><span class="stat-val" id="score-correct">0</span><span class="stat-lbl">Correct</span></div>
-                    <div class="score-stat"><span class="stat-val" id="score-wrong">0</span><span class="stat-lbl">Wrong</span></div>
-                    <div class="score-stat"><span class="stat-val" id="score-total">0</span><span class="stat-lbl">Total</span></div>
-                  </div>
-                  <button class="btn btn-glass-sm" onclick="retakeQuiz()">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"></path><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-                    New Quiz
-                  </button>
+
+                  <!-- Per-Question Results -->
+                  <div id="quiz-results-list" class="quiz-results-list"></div>
                 </div>
-
-                <!-- Per-Question Results -->
-                <div id="quiz-results-list" class="quiz-results-list"></div>
-
               </div>
 
             </div>
 
-
-            <!-- ── TAB 4: RAW TRANSCRIPT ── -->
+            <!-- ── SESSION 4: RAW FULL TRANSCRIPT ── -->
             <div class="tab-content-panel" id="panel-transcript">
               <div class="raw-transcript-view" id="raw-transcript-text-container">
                 <div class="transcript-loading-state">Load a video to view full transcript text.</div>
@@ -685,6 +720,7 @@
         </section>
 
       </main>
+
 
     </div>
 
@@ -783,7 +819,8 @@
 
   <div id="toast-notification" class="toast-card hidden"></div>
 
-  <script src="/static/js/app.js?v=20260822_2"></script>
+  <script src="/static/js/app.js?v=20260824_sessions"></script>
 </body>
 </html>
+
 

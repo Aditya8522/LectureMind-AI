@@ -484,17 +484,30 @@ let cachedLibraryVideos = [];
 
 function updateUIForLoadedVideo(data) {
   const title = data.title || "YouTube Lecture";
-  document.getElementById("topbar-title").textContent = title;
-  document.getElementById("lecture-title-display").textContent = title;
-  document.getElementById("sidebar-video-title").textContent = title;
-  document.getElementById("sidebar-video-chunks").textContent = `${data.chunk_count} indexed chunks`;
-  document.getElementById("chunk-count-badge").textContent = `${data.chunk_count} Chunks`;
+  const topbarTitle = document.getElementById("topbar-title");
+  if (topbarTitle) topbarTitle.textContent = title;
+  const lectureTitle = document.getElementById("lecture-title-display");
+  if (lectureTitle) lectureTitle.textContent = title;
+  const sidebarTitle = document.getElementById("sidebar-video-title");
+  if (sidebarTitle) sidebarTitle.textContent = title;
+  const sidebarChunks = document.getElementById("sidebar-video-chunks");
+  if (sidebarChunks) sidebarChunks.textContent = `${data.chunk_count} indexed chunks`;
+  const chunkBadge = document.getElementById("chunk-count-badge");
+  if (chunkBadge) chunkBadge.textContent = `${data.chunk_count} Chunks`;
+
+  const notesTitle = document.getElementById("notes-lecture-title");
+  if (notesTitle) notesTitle.textContent = title;
+  const quizTitle = document.getElementById("quiz-lecture-title");
+  if (quizTitle) quizTitle.textContent = title;
+  const durationPill = document.getElementById("notes-duration-pill");
+  if (durationPill && data.duration) durationPill.textContent = `⏱️ ${secToTs(data.duration)}`;
 
   // Highlight the active item in the sidebar library
   document.querySelectorAll(".library-item").forEach(item => {
     item.classList.toggle("active", item.dataset.videoId === String(data.video_id));
   });
 }
+
 
 
 // ── Library & Navigation ──────────────────────────────────────────────────────
@@ -916,21 +929,35 @@ function switchMainView(view) {
 function switchMainTab(tabKey) {
   activeTab = tabKey;
 
+  const workspace = document.getElementById("study-workspace");
+  if (workspace) {
+    workspace.classList.remove("mode-chat", "mode-notes", "mode-quiz", "mode-transcript");
+    workspace.classList.add(`mode-${tabKey}`);
+  }
+
   // Update sidebar nav items
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(item => item.classList.remove("active"));
   const activeNav = document.getElementById(`nav-${tabKey}`);
   if (activeNav) activeNav.classList.add("active");
 
-  // Update hub tabs
-  document.querySelectorAll(".hub-tab").forEach(tab => tab.classList.remove("active"));
-  const activeHubTab = document.getElementById(`tab-btn-${tabKey}`);
-  if (activeHubTab) activeHubTab.classList.add("active");
-
   // Update panels
   document.querySelectorAll(".tab-content-panel").forEach(panel => panel.classList.remove("active"));
   const targetPanel = document.getElementById(`panel-${tabKey}`);
   if (targetPanel) targetPanel.classList.add("active");
+
+  // If notes opened, ensure saved notes are loaded if not yet present
+  if (tabKey === "notes") {
+    const notesCanvas = document.querySelector(".dedicated-notes-canvas");
+    if (notesCanvas) notesCanvas.scrollTop = 0;
+    if (currentVideoId && !currentNotesContent) {
+      fetchAndDisplaySavedNotes(currentVideoId);
+    }
+  } else if (tabKey === "quiz") {
+    const quizCanvas = document.querySelector(".dedicated-quiz-canvas");
+    if (quizCanvas) quizCanvas.scrollTop = 0;
+  }
 }
+
 
 function renderSuggestions(suggestions) {
   const container = document.getElementById("suggestion-chips-container");
@@ -1020,7 +1047,11 @@ function setNotesMode(mode) {
   document.querySelectorAll("#notes-mode-toggle .mode-pill").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.mode === mode);
   });
+  if (currentVideoId) {
+    fetchAndDisplaySavedNotes(currentVideoId);
+  }
 }
+
 
 async function generateNotes() {
   if (!currentVideoId) {
