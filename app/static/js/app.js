@@ -710,27 +710,69 @@ async function fetchAndDisplayChatHistory(videoId) {
 }
 
 
+function resetNotesToEmptyState() {
+  currentNotesContent = null;
+  hideElement(document.getElementById("notes-output"));
+  showElement(document.getElementById("notes-empty"));
+  hideElement(document.getElementById("notes-loading"));
+
+  // Hide the outline sidebar completely
+  const sidebar = document.getElementById("notes-outline-sidebar");
+  if (sidebar) {
+    sidebar.style.display = "none";
+  }
+  const navList = document.getElementById("outline-nav-list");
+  if (navList) {
+    navList.innerHTML = "";
+  }
+  const countBadge = document.getElementById("outline-count-badge");
+  if (countBadge) {
+    countBadge.textContent = "0 topics";
+  }
+  const searchInput = document.getElementById("outline-search-input");
+  if (searchInput) {
+    searchInput.value = "";
+  }
+
+  // Hide export and copy buttons
+  const wrap = document.getElementById("download-notes-wrap");
+  if (wrap) wrap.style.display = "none";
+  const copyBtn = document.getElementById("btn-copy-notes");
+  if (copyBtn) copyBtn.style.display = "none";
+
+  // Reset generate button text
+  const genBtnText = document.getElementById("generate-btn-text");
+  if (genBtnText) genBtnText.textContent = "Generate Notes";
+
+  // Clear notes content body
+  const body = document.getElementById("notes-content-body");
+  if (body) body.innerHTML = "";
+}
+
 async function fetchAndDisplaySavedNotes(videoId) {
+  // Immediately reset notes UI so no previous lecture's outline or topics linger
+  resetNotesToEmptyState();
+
   try {
     const res = await fetch(`/api/notes/${videoId}?mode=${currentNotesMode}`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      resetNotesToEmptyState();
+      return;
+    }
     const data = await res.json();
 
-    if (data && data.content) {
+    if (data && data.content && data.content.trim()) {
       currentNotesContent = data.content;
       renderNotesOutput(data.content, data.mode);
     } else {
-      // No notes yet — reset to empty state
-      hideElement(document.getElementById("notes-output"));
-      showElement(document.getElementById("notes-empty"));
-      const wrap = document.getElementById("download-notes-wrap");
-      if (wrap) wrap.style.display = "none";
-      currentNotesContent = null;
+      resetNotesToEmptyState();
     }
   } catch (e) {
     console.warn("[Notes] Could not load saved notes:", e);
+    resetNotesToEmptyState();
   }
 }
+
 
 
 
@@ -1059,12 +1101,17 @@ async function generateNotes() {
     return;
   }
 
-  // Show loading, hide others
+  // Show loading, hide others and outline
   showElement(document.getElementById("notes-loading"));
   hideElement(document.getElementById("notes-empty"));
   hideElement(document.getElementById("notes-output"));
+  const sidebar = document.getElementById("notes-outline-sidebar");
+  if (sidebar) sidebar.style.display = "none";
+  const copyBtn = document.getElementById("btn-copy-notes");
+  if (copyBtn) copyBtn.style.display = "none";
+  const wrap = document.getElementById("download-notes-wrap");
+  if (wrap) wrap.style.display = "none";
   document.getElementById("generate-notes-btn").disabled = true;
-  document.getElementById("download-notes-wrap").style.display = "none";
 
   try {
     const resp = await fetch("/api/notes", {
@@ -1087,12 +1134,13 @@ async function generateNotes() {
 
   } catch (err) {
     showToast(`Error: ${err.message}`, "error");
-    showElement(document.getElementById("notes-empty"));
+    resetNotesToEmptyState();
   } finally {
     hideElement(document.getElementById("notes-loading"));
     document.getElementById("generate-notes-btn").disabled = false;
   }
 }
+
 
 function renderNotesOutput(markdownContent, mode) {
   const body = document.getElementById("notes-content-body");
