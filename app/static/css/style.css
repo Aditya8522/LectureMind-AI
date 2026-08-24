@@ -577,9 +577,20 @@ html, body {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: width var(--transition-smooth), transform var(--transition-smooth);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
   z-index: 40;
 }
+
+.app-sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  margin-left: calc(-1 * var(--sidebar-w)) !important;
+  border-right: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+}
+
 
 .sidebar-header {
   height: var(--topbar-h);
@@ -2182,14 +2193,25 @@ body.theme-light .btn-guest-demo:hover {
 
 /* ── THETAWAVE OUTLINE SIDEBAR (Sticky Navigation) ── */
 .thetawave-outline-sidebar {
-  width: 260px;
+  width: 280px;
   flex-shrink: 0;
   background: var(--bg-surface-0);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.2s ease;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+
+.thetawave-outline-sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  margin-left: -280px !important;
+  border-right: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  padding: 0 !important;
 }
 
 .outline-header {
@@ -2198,6 +2220,26 @@ body.theme-light .btn-guest-demo:hover {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.outline-collapse-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+.outline-collapse-btn:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+  border-color: var(--primary-light);
 }
 
 .outline-title-row {
@@ -2307,13 +2349,14 @@ body.theme-light .btn-guest-demo:hover {
   white-space: nowrap;
 }
 
-/* ── THETAWAVE READING CANVAS ── */
+/* ── THETAWAVE READING CANVAS (Expansive Full-Width) ── */
 .thetawave-reading-canvas {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem 3rem 6rem;
-  max-width: 980px;
-  margin: 0 auto;
+  padding: 2rem 4rem 6rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -2360,14 +2403,15 @@ body.theme-light .btn-guest-demo:hover {
 .dedicated-notes-canvas {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem 2.5rem 6rem;
-  max-width: 1050px;
+  padding: 2rem 4rem 6rem;
   width: 100%;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
+
 
 .dedicated-quiz-canvas {
   flex: 1;
@@ -3145,11 +3189,13 @@ body.theme-light .action-card-desc {
 
 /* ── Notes Output Panel ── */
 .notes-output-card {
-  flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+  gap: 1rem;
 }
+
 .notes-meta-bar {
   display: flex;
   align-items: center;
@@ -3519,14 +3565,14 @@ body.theme-light .download-menu-item:hover {
 
 /* ── Notes Markdown Body ── */
 .notes-markdown-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px 28px;
-  font-size: 14px;
-  line-height: 1.75;
+  width: 100%;
+  overflow: visible;
+  padding: 10px 0 40px;
+  font-size: 15px;
+  line-height: 1.8;
   color: var(--text-secondary);
-  scroll-behavior: smooth;
 }
+
 
 /* H1 — Document title */
 .notes-markdown-body h1 {
@@ -4013,6 +4059,32 @@ body.theme-light .chat-subtitle-main {
   color: #64748b;
 }
 
+body.theme-light .stat-val {
+  color: #0f172a;
+}
+body.theme-light .stat-lbl {
+  color: #64748b;
+}
+body.theme-light .result-option {
+  background: #f8fafc;
+}
+body.theme-light .result-explanation {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+body.theme-light .chat-pane-header {
+  background: #ffffff;
+  border-bottom-color: #e2e8f0;
+}
+body.theme-light .chat-title-main {
+  color: #0f172a;
+}
+body.theme-light .chat-subtitle-main {
+  color: #64748b;
+}
+
 body.theme-light .dedicated-workspace-header {
   background: rgba(255, 255, 255, 0.95);
   border-bottom-color: #e2e8f0;
@@ -4078,6 +4150,15 @@ body.theme-light .outline-nav-item.active {
   color: #4f46e5;
   border-left-color: #4f46e5;
 }
+body.theme-light .outline-collapse-btn {
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+body.theme-light .outline-collapse-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #c7d2fe;
+}
 body.theme-light .thetawave-meta-banner {
   background: #ffffff;
   border-color: #e2e8f0;
@@ -4087,6 +4168,7 @@ body.theme-light .meta-pill-tag {
   border-color: #e2e8f0;
   color: #475569;
 }
+
 
 
 

@@ -740,11 +740,13 @@ function resetNotesToEmptyState() {
     searchInput.value = "";
   }
 
-  // Hide export and copy buttons
+  // Hide export, copy, and outline toggle buttons
   const wrap = document.getElementById("download-notes-wrap");
   if (wrap) wrap.style.display = "none";
   const copyBtn = document.getElementById("btn-copy-notes");
   if (copyBtn) copyBtn.style.display = "none";
+  const toggleOutlineBtn = document.getElementById("btn-toggle-outline");
+  if (toggleOutlineBtn) toggleOutlineBtn.style.display = "none";
 
   // Reset generate button text
   const genBtnText = document.getElementById("generate-btn-text");
@@ -754,6 +756,7 @@ function resetNotesToEmptyState() {
   const body = document.getElementById("notes-content-body");
   if (body) body.innerHTML = "";
 }
+
 
 async function fetchAndDisplaySavedNotes(videoId) {
   // Immediately reset notes UI so no previous lecture's outline or topics linger
@@ -1180,16 +1183,23 @@ function generateTableOfContents() {
   const navList = document.getElementById("outline-nav-list");
   const sidebar = document.getElementById("notes-outline-sidebar");
   const countBadge = document.getElementById("outline-count-badge");
+  const toggleBtn = document.getElementById("btn-toggle-outline");
 
   if (!body || !navList || !sidebar) return;
 
   const headings = body.querySelectorAll("h2, h3");
   if (headings.length === 0) {
     sidebar.style.display = "none";
+    if (toggleBtn) toggleBtn.style.display = "none";
     return;
   }
 
   sidebar.style.display = "flex";
+  sidebar.classList.remove("collapsed");
+  if (toggleBtn) toggleBtn.style.display = "inline-flex";
+  const label = document.getElementById("btn-toggle-outline-label");
+  if (label) label.textContent = "Outline";
+
   navList.innerHTML = "";
   if (countBadge) countBadge.textContent = `${headings.length} topics`;
 
@@ -1220,6 +1230,18 @@ function generateTableOfContents() {
   });
 }
 
+function toggleNotesOutline() {
+  const sidebar = document.getElementById("notes-outline-sidebar");
+  const label = document.getElementById("btn-toggle-outline-label");
+  if (!sidebar) return;
+
+  sidebar.classList.toggle("collapsed");
+  const isCollapsed = sidebar.classList.contains("collapsed");
+  if (label) {
+    label.textContent = isCollapsed ? "Show Outline" : "Outline";
+  }
+}
+
 function filterOutlineSections() {
   const query = (document.getElementById("outline-search-input")?.value || "").toLowerCase().trim();
   document.querySelectorAll(".outline-nav-item").forEach(item => {
@@ -1227,6 +1249,7 @@ function filterOutlineSections() {
     item.style.display = text.includes(query) ? "flex" : "none";
   });
 }
+
 
 async function copyFullNotes() {
   if (!currentNotesContent) return;
