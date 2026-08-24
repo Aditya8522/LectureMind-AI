@@ -11,7 +11,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="/static/css/style.css?v=20260824_layout_fixed" />
+  <link rel="stylesheet" href="/static/css/style.css?v=20260824_thetawave_paper" />
+
 
 
 
@@ -198,6 +199,12 @@
     <!-- ── MAIN CONTENT AREA ── -->
     <div class="main-wrapper">
 
+      <!-- Floating Sidebar Return Dock Button (Visible when Sidebar is Collapsed) -->
+      <button class="sidebar-expand-tab" id="sidebar-expand-tab" onclick="toggleSidebar()" title="Open Main Sidebar" style="display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <span>Sidebar</span>
+      </button>
+
       <!-- Top Header Bar -->
       <header class="topbar">
         <div class="topbar-left">
@@ -215,6 +222,7 @@
           </div>
 
         </div>
+
 
         <div class="topbar-right">
           <button class="btn btn-theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch to Light / Dark mode">
@@ -603,6 +611,12 @@
               <!-- Dedicated Notes Studio Body (Sidebar Outline + Reading Canvas) -->
               <div class="thetawave-studio-body">
 
+                <!-- Floating Outline Return Tab (Visible when Outline is Collapsed) -->
+                <button class="outline-expand-tab" id="outline-expand-tab" onclick="toggleNotesOutline()" title="Open Lecture Outline" style="display:none;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  <span>Outline</span>
+                </button>
+
                 <!-- Sticky Table of Contents Outline Bar (ThetaWave Sidebar) -->
                 <aside class="thetawave-outline-sidebar" id="notes-outline-sidebar" style="display:none;">
                   <div class="outline-header">
@@ -642,10 +656,10 @@
                     </button>
                   </div>
 
-                  <!-- Notes Output Area -->
-                  <div id="notes-output" class="notes-output-card hidden">
-                    <!-- ThetaWave Executive Overview Header Banner -->
-                    <div class="thetawave-meta-banner">
+                  <!-- Notes Output — Unified ThetaWave Editorial Paper Sheet -->
+                  <div id="notes-output" class="notes-paper-sheet notes-output-card hidden">
+                    <!-- Integrated Document Meta Header -->
+                    <div class="notes-paper-header">
                       <div class="meta-banner-left">
                         <span class="notes-mode-badge" id="notes-mode-badge">Detailed Notes</span>
                         <span class="notes-timestamp-label" id="notes-generated-at"></span>
@@ -663,6 +677,7 @@
                 </div>
 
               </div>
+
 
             </div>
 
@@ -887,9 +902,10 @@
   <!-- Toast Notifications -->
   <div id="toast-notification" class="toast-card hidden"></div>
 
-  <script src="/static/js/app.js?v=20260824_layout_fixed"></script>
+  <script src="/static/js/app.js?v=20260824_thetawave_paper"></script>
 </body>
 </html>
+
 
 
 

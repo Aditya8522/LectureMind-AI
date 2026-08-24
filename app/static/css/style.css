@@ -2361,11 +2361,66 @@ body.theme-light .btn-guest-demo:hover {
   white-space: nowrap;
 }
 
-/* ── THETAWAVE READING CANVAS (Expansive Full-Width) ── */
+/* ── Floating Return Tabs ── */
+.sidebar-expand-tab {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-highlight);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: all var(--transition-fast);
+}
+
+.sidebar-expand-tab:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary-light);
+  transform: translateX(2px);
+}
+
+.outline-expand-tab {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-highlight);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: all var(--transition-fast);
+}
+
+.outline-expand-tab:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary-light);
+  transform: translateX(2px);
+}
+
+/* ── THETAWAVE READING CANVAS ── */
 .thetawave-reading-canvas {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem 4rem 6rem;
+  padding: 2rem 2.5rem 6rem;
   width: 100%;
   max-width: 100%;
   margin: 0;
@@ -2373,6 +2428,32 @@ body.theme-light .btn-guest-demo:hover {
   flex-direction: column;
   gap: 1.5rem;
   scroll-behavior: smooth;
+}
+
+/* ── THETAWAVE EDITORIAL DOCUMENT PAPER SHEET ── */
+.notes-paper-sheet {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  background: var(--bg-surface-0);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.28);
+  padding: 2.5rem 3.5rem 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow: visible;
+}
+
+.notes-paper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 /* ── THETAWAVE META BANNER ── */
@@ -2415,7 +2496,7 @@ body.theme-light .btn-guest-demo:hover {
 .dedicated-notes-canvas {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem 4rem 6rem;
+  padding: 2rem 2.5rem 6rem;
   width: 100%;
   max-width: 100%;
   margin: 0;
@@ -2423,6 +2504,7 @@ body.theme-light .btn-guest-demo:hover {
   flex-direction: column;
   gap: 1.5rem;
 }
+
 
 
 .dedicated-quiz-canvas {
@@ -4171,6 +4253,29 @@ body.theme-light .outline-collapse-btn:hover {
   color: #0f172a;
   border-color: #c7d2fe;
 }
+body.theme-light .sidebar-expand-tab,
+body.theme-light .outline-expand-tab {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+body.theme-light .sidebar-expand-tab:hover,
+body.theme-light .outline-expand-tab:hover {
+  background: #4f46e5;
+  color: #ffffff;
+  border-color: #4338ca;
+}
+
+body.theme-light .notes-paper-sheet {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+body.theme-light .notes-paper-header {
+  border-bottom-color: #e2e8f0;
+}
+
 body.theme-light .thetawave-meta-banner {
   background: #ffffff;
   border-color: #e2e8f0;
@@ -4180,6 +4285,7 @@ body.theme-light .meta-pill-tag {
   border-color: #e2e8f0;
   color: #475569;
 }
+
 
 
 

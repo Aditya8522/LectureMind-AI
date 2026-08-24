@@ -747,6 +747,8 @@ function resetNotesToEmptyState() {
   if (copyBtn) copyBtn.style.display = "none";
   const toggleOutlineBtn = document.getElementById("btn-toggle-outline");
   if (toggleOutlineBtn) toggleOutlineBtn.style.display = "none";
+  const outlineExpandTab = document.getElementById("outline-expand-tab");
+  if (outlineExpandTab) outlineExpandTab.style.display = "none";
 
   // Reset generate button text
   const genBtnText = document.getElementById("generate-btn-text");
@@ -756,6 +758,7 @@ function resetNotesToEmptyState() {
   const body = document.getElementById("notes-content-body");
   if (body) body.innerHTML = "";
 }
+
 
 
 async function fetchAndDisplaySavedNotes(videoId) {
@@ -1042,8 +1045,15 @@ function closeNewVideoModal() {
 
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
+  const expandTab = document.getElementById("sidebar-expand-tab");
+  if (!sidebar) return;
   sidebar.classList.toggle("collapsed");
+  const isCollapsed = sidebar.classList.contains("collapsed");
+  if (expandTab) {
+    expandTab.style.display = isCollapsed ? "inline-flex" : "none";
+  }
 }
+
 
 function showBannerError(elId, msg) {
   const el = document.getElementById(elId);
@@ -1184,6 +1194,7 @@ function generateTableOfContents() {
   const sidebar = document.getElementById("notes-outline-sidebar");
   const countBadge = document.getElementById("outline-count-badge");
   const toggleBtn = document.getElementById("btn-toggle-outline");
+  const expandTab = document.getElementById("outline-expand-tab");
 
   if (!body || !navList || !sidebar) return;
 
@@ -1191,12 +1202,14 @@ function generateTableOfContents() {
   if (headings.length === 0) {
     sidebar.style.display = "none";
     if (toggleBtn) toggleBtn.style.display = "none";
+    if (expandTab) expandTab.style.display = "none";
     return;
   }
 
   sidebar.style.display = "flex";
   sidebar.classList.remove("collapsed");
   if (toggleBtn) toggleBtn.style.display = "inline-flex";
+  if (expandTab) expandTab.style.display = "none";
   const label = document.getElementById("btn-toggle-outline-label");
   if (label) label.textContent = "Outline";
 
@@ -1233,6 +1246,7 @@ function generateTableOfContents() {
 function toggleNotesOutline() {
   const sidebar = document.getElementById("notes-outline-sidebar");
   const label = document.getElementById("btn-toggle-outline-label");
+  const expandTab = document.getElementById("outline-expand-tab");
   if (!sidebar) return;
 
   sidebar.classList.toggle("collapsed");
@@ -1240,7 +1254,11 @@ function toggleNotesOutline() {
   if (label) {
     label.textContent = isCollapsed ? "Show Outline" : "Outline";
   }
+  if (expandTab) {
+    expandTab.style.display = isCollapsed ? "inline-flex" : "none";
+  }
 }
+
 
 function filterOutlineSections() {
   const query = (document.getElementById("outline-search-input")?.value || "").toLowerCase().trim();
