@@ -37,6 +37,7 @@ router = APIRouter(prefix="/api/videos", tags=["videos"])
 
 class ProcessVideoRequest(BaseModel):
     youtube_url: str
+    force_reprocess: bool = False
 
 
 class ProcessVideoResponse(BaseModel):
@@ -47,6 +48,7 @@ class ProcessVideoResponse(BaseModel):
     message: str
     chunk_count: int
     from_cache: bool = False   # True when embeddings were NOT re-computed
+
 
 
 class VideoStatusResponse(BaseModel):
@@ -147,14 +149,33 @@ def process_video(
 
     youtube_video_id = transcript_data["video_id"]
 
-    # ── Layer 1: Both SQLite AND ChromaDB are ready → pure cache hit ──────────
     existing = db.query(Video).filter(
         Video.youtube_video_id == youtube_video_id
     ).first()
 
+    # ── Check for corruption in existing cached records ───────────────────────
+    is_corrupted = False
+    if existing:
+        if existing.raw_transcript and ("Error 500" in existing.raw_transcript or "That's all we know" in existing.raw_transcript):
+            is_corrupted = True
+        elif existing.chunks and any("Error 500" in (c.text or "") for c in existing.chunks):
+            is_corrupted = True
+
+    if request.force_reprocess or is_corrupted:
+        print(f"[videos] Force reprocess / corruption detected for '{youtube_video_id}'. Purging corrupted cache...")
+        from app.core.vectorstore import delete_collection
+        from app.models.db import Chunk as ChunkModel
+        delete_collection(youtube_video_id)
+        if existing:
+            db.query(ChunkModel).filter(ChunkModel.video_id == existing.id).delete()
+            existing.status = "processing"
+            existing.raw_transcript = None
+            db.commit()
+
     chroma_count = get_collection_chunk_count(youtube_video_id)
 
-    if existing and existing.status == "ready" and chroma_count > 0:
+    # ── Layer 1: Both SQLite AND ChromaDB are ready → pure cache hit ──────────
+    if existing and existing.status == "ready" and chroma_count > 0 and not is_corrupted and not request.force_reprocess:
         chunk_count = len(existing.chunks)
         _link_user_video(db, user.id, existing.id)
         print(f"[videos] Cache hit: '{youtube_video_id}' ({chunk_count} chunks, {chroma_count} in ChromaDB) linked to user {user.email}. Skipping API calls.")
@@ -167,6 +188,7 @@ def process_video(
             chunk_count=chunk_count,
             from_cache=True,
         )
+
 
 
     # ── Layer 2: ChromaDB has data but SQLite record is missing/failed ─────────

@@ -144,7 +144,17 @@ def retrieve_chunks_hybrid(video_id: str, question: str, top_k: int = TOP_K) -> 
 def retrieve_all_chunks_for_video(video_id: str) -> List[dict]:
     """
     Return ALL chunks for a video ordered by timestamp.
-    Used by notes/quiz generation endpoints for full transcript context.
+    Sanitizes any legacy error strings so notes and quiz engines receive clean context.
     """
-    return get_all_chunks(video_id)
+    from app.core.transcript import _clean_segment_text
+    chunks = get_all_chunks(video_id)
+    sanitized = []
+    for c in chunks:
+        clean_txt = _clean_segment_text(c["text"])
+        if clean_txt:
+            item = c.copy()
+            item["text"] = clean_txt
+            sanitized.append(item)
+    return sanitized
+
 

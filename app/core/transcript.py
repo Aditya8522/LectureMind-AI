@@ -378,6 +378,97 @@ def _group_segments_for_translation(
             "duration": round(curr_end - curr_start, 2),
         })
 
+# ── Helpers & Sanitization ───────────────────────────────────────────────────
+
+ERROR_PATTERNS = [
+    r"Error\s+500\s*\(Server\s+Error\)[^.\n]*?\.?\s*(?:That's\s+an\s+error\.)?",
+    r"There\s+was\s+an\s+error\.\s*Please\s+try\s+again\s+later\.",
+    r"That's\s+all\s+we\s+know\.",
+    r"Error\s+500\s*\(Server\s+Error\)[^.]*?",
+    r"500\.\s*That's\s+an\s+error\.",
+    r"<!DOCTYPE\s+html[^>]*>",
+    r"<html[^>]*>[\s\S]*?</html>",
+]
+
+def _is_error_response(text: str) -> bool:
+    """Detect if text contains scraper error messages or HTML responses."""
+    if not text or not isinstance(text, str):
+        return True
+    t_lower = text.lower()
+    if "error 500" in t_lower or "that's all we know" in t_lower:
+        return True
+    if "500.that's an error" in t_lower or "please try again later" in t_lower:
+        return True
+    if "<!doctype" in t_lower or "<html" in t_lower or "<head" in t_lower:
+        return True
+    return False
+
+
+def _clean_segment_text(text: str) -> str:
+    """Remove HTML tags, strip translation error artifacts, and normalize whitespace."""
+    if not text or not isinstance(text, str):
+        return ""
+    text = re.sub(r"<[^>]+>", "", text)
+    for pat in ERROR_PATTERNS:
+        text = re.sub(pat, "", text, flags=re.IGNORECASE)
+    text = " ".join(text.split())
+    return text.strip()
+
+
+# ── Multi-Language Translation Engine ──────────────────────────────────────────
+
+def _group_segments_for_translation(
+    raw_segments: list,
+    target_duration: float = 25.0,
+    max_words: int = 60,
+) -> list:
+    """
+    Group micro-segments (1-3s fragments) into natural speech blocks (~25s / ~60 words).
+    This dramatically improves translation fluency (sentence context) and
+    speeds up translation by 80-90%.
+    """
+    blocks = []
+    curr_texts = []
+    curr_start = None
+    curr_end = None
+
+    for seg in raw_segments:
+        text = seg.text if hasattr(seg, "text") else seg.get("text", "")
+        text = _clean_segment_text(text)
+        if not text or _is_error_response(text):
+            continue
+
+        start = float(seg.start if hasattr(seg, "start") else seg.get("start", 0))
+        duration = float(seg.duration if hasattr(seg, "duration") else seg.get("duration", 0))
+        end = start + duration
+
+        if curr_start is None:
+            curr_start = start
+        curr_texts.append(text)
+        curr_end = end
+
+        combined = " ".join(curr_texts)
+        if (curr_end - curr_start >= target_duration) or len(combined.split()) >= max_words:
+            clean_comb = _clean_segment_text(combined)
+            if clean_comb and not _is_error_response(clean_comb):
+                blocks.append({
+                    "text": clean_comb,
+                    "start": round(curr_start, 2),
+                    "duration": round(curr_end - curr_start, 2),
+                })
+            curr_texts = []
+            curr_start = None
+            curr_end = None
+
+    if curr_texts:
+        clean_comb = _clean_segment_text(" ".join(curr_texts))
+        if clean_comb and not _is_error_response(clean_comb):
+            blocks.append({
+                "text": clean_comb,
+                "start": round(curr_start, 2),
+                "duration": round(curr_end - curr_start, 2),
+            })
+
     return blocks
 
 
@@ -387,18 +478,9 @@ def _translate_segments(
 ) -> list:
     """
     Translate non-English transcript segments to English using a multi-layer strategy:
-      1. Primary: Fast Google Translator (deep-translator) in grouped paragraph batches.
-         - Translates a 20-min video in ~10-15s
-         - Consumes ZERO Gemini API quota (preserves quota for Chat, Notes, Quiz)
-      2. Secondary Fallback: Gemini LLM translator if deep-translator fails.
-      3. Tertiary Fallback: Original language text.
-
-    Args:
-        raw_segments    : list of segment objects/dicts with .text/.start/.duration
-        source_language : language name (e.g. "Hindi", "Spanish", "French")
-
-    Returns:
-        list of dicts: [{"text": translated_str, "start": float, "duration": float}]
+      1. Primary: Fast Google Translator (deep-translator) with strict error-response rejection.
+      2. Secondary Fallback: Gemini LLM translator (fluent technical English for Hinglish/Hindi).
+      3. Tertiary Fallback: Original language text (sanitized).
     """
     blocks = _group_segments_for_translation(raw_segments)
     if not blocks:
@@ -406,76 +488,81 @@ def _translate_segments(
 
     print(f"[transcript] Pre-grouped {len(raw_segments)} snippets into {len(blocks)} speech blocks for translation.")
 
-    # ── Strategy A: Fast Google Translator ────────────────────────────────────
+    # ── Strategy A: Fast Google Translator (with error validation) ───────────
     try:
         from deep_translator import GoogleTranslator
         translator = GoogleTranslator(source='auto', target='en')
         translated_blocks = []
         group_size = 5
-        total_groups = (len(blocks) + group_size - 1) // group_size
+        google_failed = False
 
         for g_start in range(0, len(blocks), group_size):
             group = blocks[g_start : g_start + group_size]
-            g_num = g_start // group_size + 1
             combined_text = "\n".join(b["text"] for b in group)
 
             try:
                 translated_comb = translator.translate(combined_text)
+                if _is_error_response(translated_comb):
+                    print("[transcript] [WARN] GoogleTranslator returned scraper error page. Escalating to Gemini...")
+                    google_failed = True
+                    break
+
                 trans_lines = [l.strip() for l in translated_comb.split("\n") if l.strip()]
+                if len(trans_lines) < len(group) * 0.6:
+                    print(f"[transcript] [WARN] GoogleTranslator line count mismatch. Escalating to Gemini...")
+                    google_failed = True
+                    break
+
                 for idx, b in enumerate(group):
                     t_txt = trans_lines[idx] if idx < len(trans_lines) else b["text"]
+                    if _is_error_response(t_txt):
+                        google_failed = True
+                        break
                     translated_blocks.append({
-                        "text": t_txt,
+                        "text": _clean_segment_text(t_txt),
                         "start": b["start"],
                         "duration": b["duration"],
                     })
-            except Exception as ge:
-                print(f"[transcript] [WARN] Translation group {g_num}/{total_groups} failed with GoogleTranslator ({ge}). Falling back to individual.")
-                for b in group:
-                    try:
-                        translated_blocks.append({
-                            "text": translator.translate(b["text"]),
-                            "start": b["start"],
-                            "duration": b["duration"],
-                        })
-                    except Exception:
-                        translated_blocks.append(b)
 
-        print(f"[transcript] [OK] Successfully translated {len(translated_blocks)} speech blocks to English.")
-        return translated_blocks
+                if google_failed:
+                    break
+
+            except Exception as ge:
+                print(f"[transcript] [WARN] GoogleTranslator group failed ({ge}). Escalating to Gemini...")
+                google_failed = True
+                break
+
+        if not google_failed and len(translated_blocks) == len(blocks):
+            print(f"[transcript] [OK] Successfully translated {len(translated_blocks)} speech blocks via Google Translator.")
+            return translated_blocks
 
     except Exception as err:
-        print(f"[transcript] [WARN] Fast Google Translator unavailable ({err}). Falling back to Gemini translator...")
+        print(f"[transcript] [WARN] Google Translator unavailable ({err}). Escalating to Gemini...")
 
-    # ── Strategy B: Gemini Translation Fallback ───────────────────────────────
+    # ── Strategy B: Gemini Educational Translation Fallback ───────────────────
     return _translate_segments_with_gemini(blocks, source_language)
 
 
 def _translate_segments_with_gemini(
     blocks: list,
     source_language: str,
-    batch_size: int = 25,
+    batch_size: int = 35,
 ) -> list:
+
     """
-    Fallback translation using Gemini API.
+    High-quality educational translation using Gemini multi-model fallback.
+    Accurately handles Hinglish, technical code references, and library parameters.
     """
-    import time
     try:
-        from google import genai
+        from app.core.llm import _call_gemini_with_fallback, NOTES_MODELS
         from google.genai import types as genai_types
-        from dotenv import load_dotenv
-        load_dotenv()
-
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            return blocks
-
-        client = genai.Client(api_key=api_key)
-    except Exception:
+    except Exception as e:
+        print(f"[transcript] [WARN] Cannot import LLM fallback engine: {e}")
         return blocks
 
     translated_segments = []
     total_batches = (len(blocks) + batch_size - 1) // batch_size
+    print(f"[transcript] [Gemini] Translating {len(blocks)} speech blocks across {total_batches} batches...")
 
     for batch_idx in range(0, len(blocks), batch_size):
         batch = blocks[batch_idx : batch_idx + batch_size]
@@ -484,14 +571,15 @@ def _translate_segments_with_gemini(
         numbered_lines = [f"{i+1}| {b['text']}" for i, b in enumerate(batch)]
         source_text = "\n".join(numbered_lines)
 
-        prompt = f"""You are a professional educational translator. Translate the following {source_language} lecture transcript segments into fluent, clear English.
+        prompt = f"""You are a professional educational translator. Translate the following {source_language} lecture transcript segments into fluent, clear, academic English.
 
-RULES:
+CRITICAL RULES:
+- The lecture may be in Hindi or Hinglish (Hindi mixed with English technical terms like LangChain, Runnables, PromptTemplate, RunnableSequence, LCEL, etc.).
+- Translate the Hindi explanations into natural, clear English while preserving ALL technical terms, code references, and library names exactly as spoken.
 - Maintain the exact format: [Number]| [English translation]
-- Exactly one line per numbered item (e.g. "1| Today we will learn about RAG...")
-- Translate technical terms, explanations, and conversational phrasing naturally for study notes
-- Do NOT skip any numbers. Output ALL {len(batch)} numbered lines.
-- Output ONLY the numbered translations, nothing else.
+- Exactly one line per numbered item (e.g. "1| Today we will cover Runnables in LangChain...")
+- Do NOT output HTML, error messages, markdown headers, or conversational preamble.
+- Output ALL {len(batch)} numbered lines.
 
 {source_language} segments to translate:
 {source_text}
@@ -499,31 +587,29 @@ RULES:
 English translations:"""
 
         translated_lines = {}
-        for attempt in range(1, 4):
-            try:
-                response = client.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=prompt,
-                    config=genai_types.GenerateContentConfig(
-                        temperature=0.1,
-                        max_output_tokens=4000,
-                    ),
-                )
-                raw_text = response.text.strip()
-                translated_lines = _parse_pipe_translations(raw_text, len(batch))
-                print(f"[transcript] [OK] Gemini translated batch {batch_num}/{total_batches} ({len(batch)} blocks)")
-                break
-            except Exception as e:
-                print(f"[transcript] [WARN] Batch {batch_num}/{total_batches} attempt {attempt} failed: {e}")
-                if attempt < 3:
-                    time.sleep(15)
-                else:
-                    translated_lines = {i: b["text"] for i, b in enumerate(batch)}
+        try:
+            response = _call_gemini_with_fallback(
+                contents=prompt,
+                config=genai_types.GenerateContentConfig(
+                    temperature=0.1,
+                    max_output_tokens=4096,
+                    top_p=0.85,
+                ),
+                model_candidates=NOTES_MODELS,
+                preferred_key="primary",
+            )
+            raw_text = response.text.strip()
+            translated_lines = _parse_pipe_translations(raw_text, len(batch))
+            print(f"[transcript] [OK] Gemini translated batch {batch_num}/{total_batches} ({len(batch)} blocks)")
+        except Exception as e:
+            print(f"[transcript] [WARN] Gemini translation batch {batch_num}/{total_batches} failed: {e}")
+            translated_lines = {i: b["text"] for i, b in enumerate(batch)}
 
         for i, b in enumerate(batch):
             text_val = translated_lines.get(i, "").strip() or b["text"]
+            clean_val = _clean_segment_text(text_val)
             translated_segments.append({
-                "text": text_val,
+                "text": clean_val if clean_val else b["text"],
                 "start": b["start"],
                 "duration": b["duration"],
             })
@@ -547,15 +633,9 @@ def _parse_pipe_translations(text: str, expected_count: int) -> dict:
         match = re.match(r"^(\d+)\s*[|.:)]\s*(.+)$", line)
         if match:
             idx = int(match.group(1)) - 1
-            result[idx] = match.group(2).strip()
+            res_txt = match.group(2).strip()
+            if not _is_error_response(res_txt):
+                result[idx] = res_txt
 
     return result
 
-
-# ── Helpers ────────────────────────────────────────────────────────────────────
-
-def _clean_segment_text(text: str) -> str:
-    """Remove HTML tags and normalize whitespace from a transcript segment."""
-    text = re.sub(r"<[^>]+>", "", text)
-    text = " ".join(text.split())
-    return text.strip()
