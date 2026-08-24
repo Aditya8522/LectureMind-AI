@@ -575,6 +575,12 @@
                     </div>
                   </div>
 
+                  <!-- Shortcut to Quiz -->
+                  <button class="btn btn-glass-sm" onclick="switchMainTab('quiz')" title="Open Practice Quiz Arena">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                    <span>Practice Quiz</span>
+                  </button>
+
                   <button class="btn btn-gradient-primary btn-sm" id="generate-notes-btn" onclick="generateNotes()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                     <span id="generate-btn-text">Generate Notes</span>
@@ -673,14 +679,21 @@
                   </div>
                 </div>
 
-                <!-- Right: Action -->
+                <!-- Right: Actions -->
                 <div class="dedicated-header-right">
+                  <!-- Shortcut to Notes -->
+                  <button class="btn btn-glass-sm" onclick="switchMainTab('notes')" title="Open Smart Notes Studio">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    <span>Smart Notes</span>
+                  </button>
+
                   <button class="btn btn-gradient-primary btn-sm" id="generate-quiz-btn" onclick="generateQuiz()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                     <span>Generate Quiz</span>
                   </button>
                 </div>
               </div>
+
 
               <!-- Dedicated Quiz Canvas -->
               <div class="dedicated-quiz-canvas">
@@ -856,9 +869,10 @@
   <!-- Toast Notifications -->
   <div id="toast-notification" class="toast-card hidden"></div>
 
-  <script src="/static/js/app.js?v=20260824_fix_outline"></script>
+  <script src="/static/js/app.js?v=20260824_all_verified"></script>
 </body>
 </html>
+
 
 
 
