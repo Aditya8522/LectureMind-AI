@@ -2166,6 +2166,196 @@ body.theme-light .btn-guest-demo:hover {
   gap: 0.5rem;
 }
 
+/* ══════════════════════════ THETAWAVE NOTES STUDIO ══════════════════════════ */
+.thetawave-notes-header {
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+}
+
+.thetawave-studio-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100% - 58px);
+  position: relative;
+}
+
+/* ── THETAWAVE OUTLINE SIDEBAR (Sticky Navigation) ── */
+.thetawave-outline-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--bg-surface-0);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.outline-header {
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.outline-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.outline-icon {
+  font-size: 1rem;
+}
+
+.outline-heading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.outline-count-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--primary-subtle);
+  color: var(--primary-light);
+}
+
+.outline-search-box {
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.outline-search-input {
+  width: 100%;
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-family: var(--font-main);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.outline-search-input:focus {
+  border-color: var(--primary);
+}
+
+.outline-nav-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.65rem 0.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  scrollbar-width: thin;
+}
+
+.outline-nav-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1.35;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.outline-nav-item:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.outline-nav-item.active {
+  background: var(--primary-subtle);
+  color: var(--primary-light);
+  font-weight: 600;
+  border-left-color: var(--primary);
+}
+
+.outline-nav-item.level-3 {
+  padding-left: 1.25rem;
+  font-size: 0.74rem;
+  opacity: 0.85;
+}
+
+.outline-item-num {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.outline-item-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── THETAWAVE READING CANVAS ── */
+.thetawave-reading-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 3rem 6rem;
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  scroll-behavior: smooth;
+}
+
+/* ── THETAWAVE META BANNER ── */
+.thetawave-meta-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.meta-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.meta-banner-right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.meta-pill-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--bg-surface-3);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
 /* ── DEDICATED FULL-PAGE CANVASES ── */
 .dedicated-notes-canvas {
   flex: 1;
@@ -2195,6 +2385,7 @@ body.theme-light .btn-guest-demo:hover {
   font-size: 11px;
   color: var(--text-muted);
 }
+
 
 /* ── TAB PANELS ── */
 .tab-content-panel {
@@ -3756,6 +3947,7 @@ body.theme-light .notes-table td {
   color: #374151;
   border-bottom-color: #e2e8f0;
 }
+
 body.theme-light .notes-code-block {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
@@ -3800,6 +3992,102 @@ body.theme-light .inline-ts:hover {
   background: #4f46e5;
   color: #ffffff;
 }
+
+body.theme-light .result-option {
+  background: #f8fafc;
+}
+body.theme-light .result-explanation {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+body.theme-light .chat-pane-header {
+  background: #ffffff;
+  border-bottom-color: #e2e8f0;
+}
+body.theme-light .chat-title-main {
+  color: #0f172a;
+}
+body.theme-light .chat-subtitle-main {
+  color: #64748b;
+}
+
+body.theme-light .dedicated-workspace-header {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom-color: #e2e8f0;
+}
+body.theme-light .dedicated-lecture-title {
+  color: #0f172a;
+}
+body.theme-light .btn-back-chat {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+body.theme-light .btn-back-chat:hover {
+  background: #eef2ff;
+  color: #4f46e5;
+  border-color: #6366f1;
+}
+body.theme-light .badge-notes-studio {
+  background: #ede9fe;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+body.theme-light .badge-quiz-arena {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+body.theme-light .notes-reading-meta {
+  color: #64748b;
+}
+
+/* ThetaWave Outline & Banner Light Theme */
+body.theme-light .thetawave-outline-sidebar {
+  background: #ffffff;
+  border-right-color: #e2e8f0;
+}
+body.theme-light .outline-header {
+  border-bottom-color: #e2e8f0;
+}
+body.theme-light .outline-heading {
+  color: #0f172a;
+}
+body.theme-light .outline-search-box {
+  border-bottom-color: #e2e8f0;
+}
+body.theme-light .outline-search-input {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+body.theme-light .outline-search-input:focus {
+  border-color: #4f46e5;
+}
+body.theme-light .outline-nav-item {
+  color: #64748b;
+}
+body.theme-light .outline-nav-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+body.theme-light .outline-nav-item.active {
+  background: #eef2ff;
+  color: #4f46e5;
+  border-left-color: #4f46e5;
+}
+body.theme-light .thetawave-meta-banner {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+body.theme-light .meta-pill-tag {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
 
 
 body.theme-light .quiz-question-card {

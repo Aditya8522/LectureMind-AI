@@ -1100,17 +1100,96 @@ function renderNotesOutput(markdownContent, mode) {
   const tsLabel = document.getElementById("notes-generated-at");
   const outputCard = document.getElementById("notes-output");
   const downloadWrap = document.getElementById("download-notes-wrap");
+  const copyBtn = document.getElementById("btn-copy-notes");
+  const genBtnText = document.getElementById("generate-btn-text");
 
-  badge.textContent = mode === "summary" ? "Quick Summary" : "Detailed Notes";
-  badge.className = `notes-mode-badge ${mode === "detailed" ? "badge-detailed" : ""}`;
-  tsLabel.textContent = `Generated ${new Date().toLocaleTimeString()}`;
+  if (badge) {
+    badge.textContent = mode === "summary" ? "Quick Summary" : "Detailed Notes";
+    badge.className = `notes-mode-badge ${mode === "detailed" ? "badge-detailed" : ""}`;
+  }
+  if (tsLabel) tsLabel.textContent = `Synthesized ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  if (genBtnText) genBtnText.textContent = "Regenerate Notes";
 
   body.innerHTML = renderMarkdownFull(markdownContent);
 
+  // Generate dynamic Table of Contents Outline
+  generateTableOfContents();
+
   hideElement(document.getElementById("notes-empty"));
   showElement(outputCard);
-  downloadWrap.style.display = "flex";
+  if (downloadWrap) downloadWrap.style.display = "flex";
+  if (copyBtn) copyBtn.style.display = "inline-flex";
 }
+
+function generateTableOfContents() {
+  const body = document.getElementById("notes-content-body");
+  const navList = document.getElementById("outline-nav-list");
+  const sidebar = document.getElementById("notes-outline-sidebar");
+  const countBadge = document.getElementById("outline-count-badge");
+
+  if (!body || !navList || !sidebar) return;
+
+  const headings = body.querySelectorAll("h2, h3");
+  if (headings.length === 0) {
+    sidebar.style.display = "none";
+    return;
+  }
+
+  sidebar.style.display = "flex";
+  navList.innerHTML = "";
+  if (countBadge) countBadge.textContent = `${headings.length} topics`;
+
+  headings.forEach((h, index) => {
+    const id = `toc-sec-${index}`;
+    h.id = id;
+    const isH3 = h.tagName.toLowerCase() === "h3";
+    const text = h.textContent.replace(/^[\d\.\s\-\:\▶]+/, "").trim() || h.textContent;
+
+    const item = document.createElement("a");
+    item.className = `outline-nav-item ${isH3 ? "level-3" : "level-2"}`;
+    item.dataset.targetId = id;
+    item.innerHTML = `
+      <span class="outline-item-num">${index + 1}.</span>
+      <span class="outline-item-text" title="${text}">${text}</span>
+    `;
+    item.onclick = (e) => {
+      e.preventDefault();
+      document.querySelectorAll(".outline-nav-item").forEach(el => el.classList.remove("active"));
+      item.classList.add("active");
+      const targetEl = document.getElementById(id);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+
+    navList.appendChild(item);
+  });
+}
+
+function filterOutlineSections() {
+  const query = (document.getElementById("outline-search-input")?.value || "").toLowerCase().trim();
+  document.querySelectorAll(".outline-nav-item").forEach(item => {
+    const text = item.textContent.toLowerCase();
+    item.style.display = text.includes(query) ? "flex" : "none";
+  });
+}
+
+async function copyFullNotes() {
+  if (!currentNotesContent) return;
+  try {
+    await navigator.clipboard.writeText(currentNotesContent);
+    const label = document.getElementById("copy-notes-label");
+    const originalText = label ? label.textContent : "Copy Notes";
+    if (label) label.textContent = "✓ Copied!";
+    showToast("Master notes copied to clipboard!", "info");
+    setTimeout(() => {
+      if (label) label.textContent = originalText;
+    }, 2000);
+  } catch (e) {
+    showToast("Could not copy notes to clipboard", "error");
+  }
+}
+
 
 function toggleDownloadMenu() {
   const menu = document.getElementById("download-menu");

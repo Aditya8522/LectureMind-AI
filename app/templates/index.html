@@ -11,7 +11,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="/static/css/style.css?v=20260824_pure_black" />
+  <link rel="stylesheet" href="/static/css/style.css?v=20260824_thetawave_notes" />
 
   <!-- KaTeX — LaTeX math rendering for Smart Notes formulas -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
@@ -513,8 +513,11 @@
             <!-- ── SESSION 2: DEDICATED SMART NOTES STUDIO (Full Width) ── -->
             <div class="tab-content-panel" id="panel-notes">
 
-              <!-- Dedicated Notes Top Bar -->
-              <div class="dedicated-workspace-header">
+            <!-- ── SESSION 2: DEDICATED SMART NOTES STUDIO (ThetaWave AI Style) ── -->
+            <div class="tab-content-panel" id="panel-notes">
+
+              <!-- Dedicated Notes Top Bar (ThetaWave Studio Header) -->
+              <div class="dedicated-workspace-header thetawave-notes-header">
                 <div class="dedicated-header-left">
                   <button class="btn btn-back-chat" onclick="switchMainTab('chat')" title="Back to Video & AI Chat">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -525,8 +528,9 @@
                   </button>
                   <div class="dedicated-header-title-box">
                     <div class="dedicated-badge-row">
-                      <span class="badge-notes-studio">📖 SMART NOTES STUDIO</span>
+                      <span class="badge-notes-studio">✨ THETAWAVE SMART NOTES</span>
                       <span class="notes-meta-pill" id="notes-duration-pill">⏱️ Ready</span>
+                      <span class="notes-meta-pill text-emerald">⚡ Dual-Core Gemini Engine</span>
                     </div>
                     <h2 class="dedicated-lecture-title" id="notes-lecture-title">Lecture Notes</h2>
                   </div>
@@ -535,18 +539,27 @@
                 <!-- Center: Mode Selector -->
                 <div class="dedicated-header-center">
                   <div class="mode-toggle-group" id="notes-mode-toggle">
-                    <button class="mode-pill active" data-mode="summary" onclick="setNotesMode('summary')">Quick Summary</button>
-                    <button class="mode-pill" data-mode="detailed" onclick="setNotesMode('detailed')">Detailed Notes</button>
+                    <button class="mode-pill active" data-mode="summary" onclick="setNotesMode('summary')">⚡ Quick Summary</button>
+                    <button class="mode-pill" data-mode="detailed" onclick="setNotesMode('detailed')">📚 Detailed Master Notes</button>
                   </div>
                 </div>
 
                 <!-- Right: Actions -->
                 <div class="dedicated-header-right">
+                  <!-- Copy Markdown Button -->
+                  <button class="btn btn-glass-sm" id="btn-copy-notes" onclick="copyFullNotes()" title="Copy Full Notes to Clipboard" style="display:none;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span id="copy-notes-label">Copy Notes</span>
+                  </button>
+
                   <!-- Download dropdown -->
                   <div class="download-dropdown-wrap" id="download-notes-wrap" style="display:none; position:relative;">
                     <button class="btn btn-glass-sm" id="download-notes-btn" onclick="toggleDownloadMenu()" title="Download Notes">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                      <span>Download</span>
+                      <span>Export</span>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
                     <div class="download-menu" id="download-menu" style="display:none;">
@@ -564,42 +577,67 @@
 
                   <button class="btn btn-gradient-primary btn-sm" id="generate-notes-btn" onclick="generateNotes()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span>Generate Notes</span>
+                    <span id="generate-btn-text">Generate Notes</span>
                   </button>
                 </div>
               </div>
 
-              <!-- Dedicated Notes Canvas (Centered, Roomy Obsidian/ThetaWave Style) -->
-              <div class="dedicated-notes-canvas">
-                <!-- Notes Loading State -->
-                <div id="notes-loading" class="feature-loading-card hidden">
-                  <div class="spinner-ring"></div>
-                  <div class="loading-text">Gemini is synthesizing the entire lecture and generating master study notes...</div>
-                </div>
+              <!-- Dedicated Notes Studio Body (Sidebar Outline + Reading Canvas) -->
+              <div class="thetawave-studio-body">
 
-                <!-- Notes Empty State -->
-                <div id="notes-empty" class="feature-empty-card">
-                  <div class="feature-empty-icon">📝</div>
-                  <div class="feature-empty-title">No notes generated yet for this lecture</div>
-                  <div class="feature-empty-sub">Choose a mode above (Quick Summary or Detailed Notes) and click <strong>Generate Notes</strong> to create comprehensive study notes.</div>
-                  <button class="btn btn-gradient-primary" style="margin-top: 1rem;" onclick="generateNotes()">
-                    ⚡ Generate Notes Now
-                  </button>
-                </div>
-
-                <!-- Notes Output Area -->
-                <div id="notes-output" class="notes-output-card hidden">
-                  <div class="notes-meta-bar">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <span class="notes-mode-badge" id="notes-mode-badge">Summary</span>
-                      <span class="notes-timestamp-label" id="notes-generated-at"></span>
+                <!-- Sticky Table of Contents Outline Bar (ThetaWave Sidebar) -->
+                <aside class="thetawave-outline-sidebar" id="notes-outline-sidebar" style="display:none;">
+                  <div class="outline-header">
+                    <div class="outline-title-row">
+                      <span class="outline-icon">📑</span>
+                      <span class="outline-heading">Lecture Outline</span>
                     </div>
-                    <div class="notes-reading-meta">
-                      <span>Obsidian Markdown & KaTeX Math Typeset</span>
-                    </div>
+                    <span class="outline-count-badge" id="outline-count-badge">0 topics</span>
                   </div>
-                  <div class="notes-markdown-body" id="notes-content-body"></div>
+                  <div class="outline-search-box">
+                    <input type="text" id="outline-search-input" class="outline-search-input" placeholder="Filter sections..." oninput="filterOutlineSections()" />
+                  </div>
+                  <nav class="outline-nav-list" id="outline-nav-list"></nav>
+                </aside>
+
+                <!-- Dedicated Notes Canvas (Centered, Roomy ThetaWave Style) -->
+                <div class="dedicated-notes-canvas thetawave-reading-canvas">
+                  <!-- Notes Loading State -->
+                  <div id="notes-loading" class="feature-loading-card hidden">
+                    <div class="spinner-ring"></div>
+                    <div class="loading-text">ThetaWave AI is analyzing the lecture chunks, deriving mathematical formulations, and generating master study notes...</div>
+                  </div>
+
+                  <!-- Notes Empty State -->
+                  <div id="notes-empty" class="feature-empty-card">
+                    <div class="feature-empty-icon">✨</div>
+                    <div class="feature-empty-title">Ready to Generate ThetaWave Study Notes</div>
+                    <div class="feature-empty-sub">Choose a mode above (<strong>Quick Summary</strong> or <strong>Detailed Master Notes</strong>) and click <strong>Generate Notes</strong> to synthesize this lecture with LaTeX formulas, code, and timestamped citations.</div>
+                    <button class="btn btn-gradient-primary" style="margin-top: 1rem;" onclick="generateNotes()">
+                      ⚡ Generate Notes Now
+                    </button>
+                  </div>
+
+                  <!-- Notes Output Area -->
+                  <div id="notes-output" class="notes-output-card hidden">
+                    <!-- ThetaWave Executive Overview Header Banner -->
+                    <div class="thetawave-meta-banner">
+                      <div class="meta-banner-left">
+                        <span class="notes-mode-badge" id="notes-mode-badge">Detailed Notes</span>
+                        <span class="notes-timestamp-label" id="notes-generated-at"></span>
+                      </div>
+                      <div class="meta-banner-right">
+                        <span class="meta-pill-tag">✨ Gemini 2.5 Flash</span>
+                        <span class="meta-pill-tag">📐 KaTeX LaTeX Math</span>
+                        <span class="meta-pill-tag">💻 Code Highlighted</span>
+                      </div>
+                    </div>
+
+                    <!-- Main Markdown Body -->
+                    <div class="notes-markdown-body thetawave-notes-content" id="notes-content-body"></div>
+                  </div>
                 </div>
+
               </div>
 
             </div>
@@ -816,11 +854,12 @@
   </div>
 
   <!-- Toast Notifications -->
-
   <div id="toast-notification" class="toast-card hidden"></div>
 
-  <script src="/static/js/app.js?v=20260824_sessions"></script>
+  <script src="/static/js/app.js?v=20260824_thetawave_notes"></script>
 </body>
 </html>
+
+
 
 
