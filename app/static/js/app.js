@@ -59,9 +59,9 @@ function onYouTubeIframeAPIReady() {
 function initYouTubePlayer(youtubeVideoId) {
   isPlayerReady = false;
 
-  if (youtubePlayer && typeof youtubePlayer.loadVideoById === "function") {
+  if (youtubePlayer && typeof youtubePlayer.cueVideoById === "function") {
     try {
-      youtubePlayer.loadVideoById(youtubeVideoId);
+      youtubePlayer.cueVideoById(youtubeVideoId);
       isPlayerReady = true;
       return;
     } catch (e) {
@@ -79,9 +79,14 @@ function initYouTubePlayer(youtubeVideoId) {
         origin: window.location.origin,
       },
       events: {
-        onReady: () => {
+        onReady: (event) => {
           isPlayerReady = true;
-          console.log("[YT Player] Ready for seeking");
+          try {
+            if (event.target && typeof event.target.pauseVideo === "function") {
+              event.target.pauseVideo();
+            }
+          } catch (e) {}
+          console.log("[YT Player] Ready (paused, awaiting user playback)");
         },
         onError: (e) => console.warn("[YT Player] Error:", e.data)
       }
@@ -90,6 +95,7 @@ function initYouTubePlayer(youtubeVideoId) {
     console.error("Failed to initialize YT Player:", err);
   }
 }
+
 
 function seekTo(seconds) {
   const sec = parseFloat(seconds);
