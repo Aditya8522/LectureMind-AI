@@ -566,30 +566,36 @@ html, body {
   background-color: var(--bg-obsidian);
   background-image: var(--grad-hero);
   background-attachment: fixed;
+  overflow: hidden;
 }
 
 /* ── SIDEBAR ── */
 .app-sidebar {
   width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
   height: 100vh;
   background-color: var(--bg-surface-0);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
   z-index: 40;
+  overflow: hidden;
 }
 
 .app-sidebar.collapsed {
   width: 0 !important;
   min-width: 0 !important;
-  margin-left: calc(-1 * var(--sidebar-w)) !important;
+  max-width: 0 !important;
   border-right: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
   overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
+
 
 
 .sidebar-header {
@@ -1366,11 +1372,14 @@ body.theme-light .btn-guest-demo:hover {
 /* ══════════════════════════ MAIN WRAPPER ══════════════════════════ */
 .main-wrapper {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  position: relative;
 }
+
 
 /* ── TOPBAR ── */
 .topbar {
@@ -2194,25 +2203,28 @@ body.theme-light .btn-guest-demo:hover {
 /* ── THETAWAVE OUTLINE SIDEBAR (Sticky Navigation) ── */
 .thetawave-outline-sidebar {
   width: 280px;
+  min-width: 280px;
   flex-shrink: 0;
   background: var(--bg-surface-0);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
 }
 
 .thetawave-outline-sidebar.collapsed {
   width: 0 !important;
   min-width: 0 !important;
-  margin-left: -280px !important;
+  max-width: 0 !important;
   border-right: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
   overflow: hidden !important;
   padding: 0 !important;
+  margin: 0 !important;
 }
+
 
 .outline-header {
   padding: 0.85rem 1rem;
