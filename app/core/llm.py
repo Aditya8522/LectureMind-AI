@@ -17,38 +17,43 @@ Features:
 import os
 import json
 from typing import List
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 
 from app.core.chunking import format_timestamp
 
+
 load_dotenv()
 
 # ── Task-Specific Model Configurations ─────────────────────────────────────────
-# Based on Google AI Studio rate limits and model reasoning capabilities:
+# Optimized for ultra-fast response (1-2s) and high reliability without 503 stalls:
 
-# Smart Notes: Flagship reasoning model for deepest synthesis, structure, and academic clarity
+# Smart Notes: Blazingly fast primary engine with deep academic structure & instant fallback
 NOTES_MODELS = [
-    "gemini-3.7-flash",      # Flagship intelligence for rich, high-quality notes
-    "gemini-3.5-flash",      # High-capability fallback
-    "gemini-3.5-flash-lite", # Ultra-fast fallback
+    "gemini-3.5-flash",      # 1.5s latency, rock-solid reliability & academic synthesis
+    "gemini-3.6-flash",      # Advanced intelligence fallback
+    "gemini-3.5-flash-lite", # Ultra-fast 0.9s fallback
+    "gemini-3.7-flash",      # Deep reasoning fallback
 ]
 
-# Practice Quiz: Strong reasoning for plausible distractors and timestamp-grounded explanations
+# Practice Quiz: Fast, highly accurate structured JSON generation
 QUIZ_MODELS = [
     "gemini-3.5-flash",      # Fast, highly accurate structured JSON generation
+    "gemini-3.5-flash-lite", # 0.9s ultra-fast quiz fallback
+    "gemini-3.6-flash",      # Advanced reasoning fallback
     "gemini-3.7-flash",      # Deep reasoning fallback
-    "gemini-3.5-flash-lite", # Lightweight fallback
 ]
 
-# AI Tutor Chat: Fast Q&A with huge daily quota (500 RPD on Flash Lite) for extended study sessions
+# AI Tutor Chat: Fast Q&A with huge daily throughput for continuous study sessions
 CHAT_MODELS = [
     "gemini-3.5-flash",      # High-accuracy direct answers
     "gemini-3.5-flash-lite", # 500 RPD high-throughput study chat
-    "gemini-3.1-flash-lite", # Secondary high-throughput tier (500 RPD)
-    "gemini-3.7-flash",      # Flagship fallback
+    "gemini-3.1-flash-lite", # Secondary high-throughput tier
+    "gemini-3.6-flash",      # Advanced fallback
 ]
+
 
 _client_primary = None    # GEMINI_API_KEY (Key 1: Dedicated to Smart Notes)
 _client_secondary = None  # GEMINI_API_KEY_2 (Key 2: Dedicated to Chat & Quiz)
@@ -567,12 +572,11 @@ def generate_notes(chunks: List[dict], video_title: str, mode: str = "summary") 
         except Exception as e:
             raise RuntimeError(f"Detailed notes generation failed: {str(e)}")
 
-    # ── 2B. Long Lecture (>= 75 minutes / 2+ hours) -> Multi-Part In-Depth Generation ──
-    print(f"[notes] Long lecture detected ({duration_str}). Partitioning into {len(parts)} in-depth parts.")
+    # ── 2B. Long Lecture (>= 75 minutes / 2+ hours) -> Parallel Multi-Part Generation ──
+    print(f"[notes] Long lecture detected ({duration_str}). Partitioning into {len(parts)} in-depth parts with Dual-Key Parallelism.")
 
-    generated_parts_content = []
-
-    for idx, part_chunks in enumerate(parts):
+    def _generate_single_part_worker(part_tuple):
+        idx, part_chunks, total_parts, video_title_arg, duration_str_arg = part_tuple
         part_num = idx + 1
         part_start_ts = format_timestamp(part_chunks[0]["start_time"])
         part_end_ts = format_timestamp(part_chunks[-1]["end_time"])
@@ -585,32 +589,46 @@ def generate_notes(chunks: List[dict], video_title: str, mode: str = "summary") 
 
         part_prompt = NOTES_DETAILED_PART_PROMPT.format(
             part_num=part_num,
-            total_parts=len(parts),
-            title=video_title,
-            duration_str=duration_str,
+            total_parts=total_parts,
+            title=video_title_arg,
+            duration_str=duration_str_arg,
             start_ts=part_start_ts,
             end_ts=part_end_ts,
             context=part_context,
         )
 
-        try:
-            print(f"[notes] Generating Part {part_num}/{len(parts)} ([{part_start_ts}] - [{part_end_ts}])...")
-            part_resp = _call_gemini_with_fallback(
-                contents=part_prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.35,
-                    max_output_tokens=8192,
-                    top_p=0.9,
-                ),
-                model_candidates=NOTES_MODELS,
-                preferred_key="primary",
-            )
-            part_text = part_resp.text.strip()
-            generated_parts_content.append(part_text)
-        except Exception as e:
-            print(f"[notes] [WARN] Part {part_num} generation failed: {e}. Falling back to single-pass.")
-            # Fallback to single pass if multi-part has an unexpected error
-            return _generate_notes_single_pass_fallback(sorted_chunks, video_title, duration_str)
+        # Distribute parts evenly across Key 1 (primary) and Key 2 (secondary)
+        assigned_key = "primary" if (idx % 2 == 0) else "secondary"
+        print(f"[notes] [Parallel] Launching Part {part_num}/{total_parts} ([{part_start_ts}] - [{part_end_ts}]) via {assigned_key}...")
+
+        part_resp = _call_gemini_with_fallback(
+            contents=part_prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.35,
+                max_output_tokens=8192,
+                top_p=0.9,
+            ),
+            model_candidates=NOTES_MODELS,
+            preferred_key=assigned_key,
+        )
+        return (idx, part_resp.text.strip())
+
+    try:
+        max_workers = min(len(parts), 4)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            worker_args = [(idx, p, len(parts), video_title, duration_str) for idx, p in enumerate(parts)]
+            futures = [executor.submit(_generate_single_part_worker, arg) for arg in worker_args]
+            part_results = [f.result() for f in futures]
+
+        # Sort back into chronological order
+        part_results.sort(key=lambda r: r[0])
+        generated_parts_content = [r[1] for r in part_results]
+        print(f"[notes] [Parallel] All {len(parts)} parts generated concurrently!")
+
+    except Exception as e:
+        print(f"[notes] [WARN] Parallel multi-part generation failed: {e}. Falling back to single-pass.")
+        return _generate_notes_single_pass_fallback(sorted_chunks, video_title, duration_str)
+
 
     # Generate Final Synthesis across the full lecture
     synthesis_context_summary = []
