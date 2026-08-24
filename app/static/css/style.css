@@ -569,7 +569,7 @@ html, body {
   overflow: hidden;
 }
 
-/* ── SIDEBAR ── */
+/* ── SIDEBAR (ThetaWave Inspired) ── */
 .app-sidebar {
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
@@ -579,31 +579,179 @@ html, body {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 40;
   overflow: hidden;
+  position: relative;
 }
-
-.app-sidebar.collapsed {
-  width: 0 !important;
-  min-width: 0 !important;
-  max-width: 0 !important;
-  border-right: none !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  overflow: hidden !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-
 
 .sidebar-header {
   height: var(--topbar-h);
-  padding: 0 1.25rem;
+  padding: 0 1rem 0 1.25rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.sidebar-header-collapse-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-header-collapse-btn:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+/* ── THETAWAVE MINI ICON RAIL COLLAPSED STATE (68px) ── */
+.app-sidebar.collapsed {
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-right: 1px solid var(--border-subtle) !important;
+}
+
+.app-sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding: 0;
+}
+
+.app-sidebar.collapsed .brand {
+  justify-content: center;
+  width: 100%;
+}
+
+.app-sidebar.collapsed .brand-icon {
+  width: 38px;
+  height: 38px;
+  margin: 0 auto;
+}
+
+.app-sidebar.collapsed .brand-text,
+.app-sidebar.collapsed .sidebar-header-collapse-btn {
+  display: none !important;
+}
+
+.app-sidebar.collapsed .sidebar-action {
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.app-sidebar.collapsed .sidebar-action button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.app-sidebar.collapsed .sidebar-action button span {
+  display: none !important;
+}
+
+.app-sidebar.collapsed .sidebar-nav {
+  padding: 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.app-sidebar.collapsed .nav-section-label {
+  display: none !important;
+}
+
+.app-sidebar.collapsed .nav-item {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+
+.app-sidebar.collapsed .nav-item span,
+.app-sidebar.collapsed .nav-item .nav-indicator {
+  display: none !important;
+}
+
+.app-sidebar.collapsed .nav-item svg {
+  width: 20px;
+  height: 20px;
+}
+
+.app-sidebar.collapsed .sidebar-recent,
+.app-sidebar.collapsed .sidebar-library {
+  display: none !important;
+}
+
+.app-sidebar.collapsed .sidebar-user-section {
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.app-sidebar.collapsed .user-widget-box {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.app-sidebar.collapsed .btn-sidebar-login {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+}
+
+.app-sidebar.collapsed .user-login-meta,
+.app-sidebar.collapsed .login-chevron {
+  display: none !important;
+}
+
+.app-sidebar.collapsed .user-profile-pill {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+}
+
+.app-sidebar.collapsed .user-profile-meta,
+.app-sidebar.collapsed .user-menu-btn {
+  display: none !important;
+}
+
+.app-sidebar.collapsed .user-avatar {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto;
 }
 
 .brand {
@@ -648,6 +796,7 @@ html, body {
   border: 1px solid rgba(99, 102, 241, 0.3);
   letter-spacing: 0.05em;
 }
+
 
 .sidebar-action {
   padding: 1rem 1.25rem;
@@ -4253,6 +4402,15 @@ body.theme-light .outline-collapse-btn:hover {
   color: #0f172a;
   border-color: #c7d2fe;
 }
+body.theme-light .sidebar-header-collapse-btn {
+  color: #64748b;
+}
+body.theme-light .sidebar-header-collapse-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #e2e8f0;
+}
+
 body.theme-light .sidebar-expand-tab,
 body.theme-light .outline-expand-tab {
   background: #ffffff;

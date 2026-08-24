@@ -1054,6 +1054,17 @@ function toggleSidebar() {
   }
 }
 
+function toggleSidebarIfCollapsed(event) {
+  const sidebar = document.getElementById("sidebar");
+  if (sidebar && sidebar.classList.contains("collapsed")) {
+    if (event) event.stopPropagation();
+    toggleSidebar();
+  } else {
+    goToMainPage();
+  }
+}
+
+
 
 function showBannerError(elId, msg) {
   const el = document.getElementById(elId);
