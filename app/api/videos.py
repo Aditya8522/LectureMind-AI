@@ -139,15 +139,12 @@ def process_video(
     """
     youtube_url = request.youtube_url.strip()
 
-    # ── Step 1: Extract video ID first (cheap — just URL parsing + one HTTP call) ──
+    # ── Step 1: Extract video ID in 1ms (Pure regex — 0 network / 0 API overhead) ──
+    from app.core.transcript import extract_video_id
     try:
-        transcript_data = fetch_transcript(youtube_url)
+        youtube_video_id = extract_video_id(youtube_url)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-
-    youtube_video_id = transcript_data["video_id"]
 
     existing = db.query(Video).filter(
         Video.youtube_video_id == youtube_video_id
@@ -167,14 +164,13 @@ def process_video(
         from app.models.db import Chunk as ChunkModel
         delete_collection(youtube_video_id)
         if existing:
-            db.query(ChunkModel).filter(ChunkModel.video_id == existing.id).delete()
-            existing.status = "processing"
-            existing.raw_transcript = None
+            db.delete(existing)
             db.commit()
+            existing = None
 
     chroma_count = get_collection_chunk_count(youtube_video_id)
 
-    # ── Layer 1: Both SQLite AND ChromaDB are ready → pure cache hit ──────────
+    # ── Layer 1: True Cache Hit (Instant response — 0 translation, 0 embedding API calls) ──
     if existing and existing.status == "ready" and chroma_count > 0 and not is_corrupted and not request.force_reprocess:
         chunk_count = len(existing.chunks)
         _link_user_video(db, user.id, existing.id)
@@ -188,6 +184,15 @@ def process_video(
             chunk_count=chunk_count,
             from_cache=True,
         )
+
+    # ── Step 2: Fetch and translate transcript ONLY if not cached ─────────────
+    try:
+        transcript_data = fetch_transcript(youtube_url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
 
 
 
@@ -413,12 +418,10 @@ def delete_video(
     user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
-
     """
-    Permanently delete or remove a video lecture from the database and vector store.
-    - Removes UserVideo association for the active user.
-    - Purges the ChromaDB collection to free vector disk space.
-    - Removes all associated chunks, chat history, notes, quizzes, and the video row.
+    Permanently delete a video lecture from the database and vector store.
+    - Purges the ChromaDB collection from disk.
+    - Removes all associated chunks, chat history, notes, quizzes, user links, and the video row.
     """
     try:
         vid_id_int = int(video_id)
@@ -432,39 +435,21 @@ def delete_video(
     youtube_video_id = video.youtube_video_id
     video_title = video.title or "Lecture"
 
-    # If user is authenticated, remove user link
-    if user:
-        db.query(UserVideo).filter(
-            UserVideo.user_id == user.id,
-            UserVideo.video_id == vid_id_int,
-        ).delete()
-        db.commit()
+    # Purge ChromaDB collection from disk
+    from app.core.vectorstore import delete_collection
+    delete_collection(youtube_video_id)
 
-    # Check if other users are linked
-    remaining_links = db.query(UserVideo).filter(UserVideo.video_id == vid_id_int).count()
+    # Delete Video row (SQLAlchemy cascade deletes chunks, notes, chat_history, quiz_attempts, user_videos)
+    db.delete(video)
+    db.commit()
+    print(f"[videos] Video ID {vid_id_int} ('{video_title}' - {youtube_video_id}) completely purged from SQLite and ChromaDB.")
 
-    if remaining_links == 0 or not user:
-        # Purge ChromaDB collection
-        from app.core.vectorstore import delete_collection
-        delete_collection(youtube_video_id)
+    return {
+        "status": "success",
+        "message": f"Lecture '{video_title}' permanently deleted from database.",
+        "video_id": str(vid_id_int),
+        "purged_completely": True,
+    }
 
-        # Delete Video row (SQLAlchemy cascade deletes chunks, notes, chat_history, quiz_attempts)
-        db.delete(video)
-        db.commit()
-        print(f"[videos] Video ID {vid_id_int} ('{video_title}') completely purged from SQLite and ChromaDB.")
-        return {
-            "status": "success",
-            "message": f"Lecture '{video_title}' deleted completely from database.",
-            "video_id": str(vid_id_int),
-            "purged_completely": True,
-        }
-    else:
-        print(f"[videos] Video ID {vid_id_int} unlinked from user {user.email}. Retaining shared video for {remaining_links} other users.")
-        return {
-            "status": "success",
-            "message": f"Lecture '{video_title}' removed from your library.",
-            "video_id": str(vid_id_int),
-            "purged_completely": False,
-        }
 
 
