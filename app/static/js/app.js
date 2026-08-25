@@ -660,16 +660,25 @@ async function confirmDeleteVideo() {
   const targetTitle = pendingDeleteVideoTitle;
 
   try {
-    const res = await fetch(`/api/videos/${targetId}`, {
+    let res = await fetch(`/api/videos/${targetId}`, {
       method: "DELETE",
       headers: getAuthHeaders(),
     });
+
+    // Fallback if environment proxy or old server cached 405
+    if (res.status === 405) {
+      res = await fetch(`/api/videos/${targetId}/delete`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+      });
+    }
 
     const data = await res.json();
 
     if (!res.ok) {
       throw new Error(data.detail || "Failed to delete video lecture");
     }
+
 
     // If currently active video was deleted, reset workspace state
     if (String(currentVideoId) === targetId) {

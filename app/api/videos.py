@@ -406,11 +406,14 @@ def get_video_chunks(video_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/{video_id}")
+@router.delete("/{video_id}/")
+@router.post("/{video_id}/delete")
 def delete_video(
     video_id: str,
     user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
+
     """
     Permanently delete or remove a video lecture from the database and vector store.
     - Removes UserVideo association for the active user.
