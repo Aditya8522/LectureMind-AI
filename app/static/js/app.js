@@ -487,6 +487,8 @@ async function executeVideoProcessing(url, btnId, loaderId, errorId) {
 
 // ── Cached Library State ──────────────────────────────────────────────────────
 let cachedLibraryVideos = [];
+let pendingDeleteVideoId = null;
+let pendingDeleteVideoTitle = "";
 
 function updateUIForLoadedVideo(data) {
   const title = data.title || "YouTube Lecture";
@@ -500,6 +502,9 @@ function updateUIForLoadedVideo(data) {
   if (sidebarChunks) sidebarChunks.textContent = `${data.chunk_count} indexed chunks`;
   const chunkBadge = document.getElementById("chunk-count-badge");
   if (chunkBadge) chunkBadge.textContent = `${data.chunk_count} Chunks`;
+
+  const activeDeleteBtn = document.getElementById("active-video-delete-btn");
+  if (activeDeleteBtn) activeDeleteBtn.classList.remove("hidden");
 
   const notesTitle = document.getElementById("notes-lecture-title");
   if (notesTitle) notesTitle.textContent = title;
@@ -569,35 +574,140 @@ function renderLibraryUI(videos) {
     const date = v.processed_at
       ? new Date(v.processed_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" })
       : "";
+    const safeTitle = escapeHtml(v.title || "Untitled");
+    const escapedForAttr = safeTitle.replace(/'/g, "\\'");
     return `
       <div class="library-item ${isActive ? "active" : ""}"
            data-video-id="${v.video_id}"
            onclick="handleLibraryCardClick('${v.video_id}')"
-           title="${escapeHtml(v.title || "Lecture")}">
+           title="${safeTitle}">
         <div class="library-item-thumb">
           <img src="https://img.youtube.com/vi/${v.youtube_video_id}/default.jpg"
                onerror="this.style.display='none'"
                alt="" />
         </div>
         <div class="library-item-meta">
-          <div class="library-item-title">${escapeHtml(v.title || "Untitled")}</div>
+          <div class="library-item-title">${safeTitle}</div>
           <div class="library-item-sub">
             <span>${v.chunk_count} chunks</span>
             ${date ? `<span>·</span><span>${date}</span>` : ""}
           </div>
         </div>
+        <button class="library-item-delete"
+                title="Delete lecture from database"
+                onclick="openDeleteVideoModal(event, '${v.video_id}', '${escapedForAttr}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
       </div>
     `;
   }).join("");
 }
 
 function handleLibraryCardClick(videoId) {
-
   const video = cachedLibraryVideos.find(v => String(v.video_id) === String(videoId));
   if (video) {
     loadVideoFromLibrary(video.video_id, video.youtube_video_id, video.title, video.chunk_count);
   }
 }
+
+// ── Delete Lecture Modals & Logic ─────────────────────────────────────────────
+
+function openDeleteVideoModal(event, videoId, videoTitle) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  pendingDeleteVideoId = String(videoId);
+  pendingDeleteVideoTitle = videoTitle || "this lecture";
+
+  const preview = document.getElementById("delete-video-title-preview");
+  if (preview) preview.textContent = pendingDeleteVideoTitle;
+
+  const modal = document.getElementById("delete-video-modal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closeDeleteVideoModal() {
+  const modal = document.getElementById("delete-video-modal");
+  if (modal) modal.classList.add("hidden");
+  pendingDeleteVideoId = null;
+  pendingDeleteVideoTitle = "";
+}
+
+function handleActiveVideoDelete(event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  if (!currentVideoId) return;
+  openDeleteVideoModal(event, currentVideoId, currentVideoTitle);
+}
+
+async function confirmDeleteVideo() {
+  if (!pendingDeleteVideoId) return;
+
+  const confirmBtn = document.getElementById("btn-confirm-delete-video");
+  const btnText = document.getElementById("delete-confirm-btn-text");
+  const originalText = btnText ? btnText.textContent : "Delete Permanently";
+
+  if (confirmBtn) confirmBtn.disabled = true;
+  if (btnText) btnText.textContent = "Deleting...";
+
+  const targetId = String(pendingDeleteVideoId);
+  const targetTitle = pendingDeleteVideoTitle;
+
+  try {
+    const res = await fetch(`/api/videos/${targetId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || "Failed to delete video lecture");
+    }
+
+    // If currently active video was deleted, reset workspace state
+    if (String(currentVideoId) === targetId) {
+      currentVideoId = null;
+      currentYouTubeId = null;
+      currentVideoTitle = null;
+      localStorage.removeItem("lecturemind_active_video_id");
+
+      // Reset sidebar & topbar text
+      const topbarTitle = document.getElementById("topbar-title");
+      if (topbarTitle) topbarTitle.textContent = "Ready for lecture";
+      const sidebarTitle = document.getElementById("sidebar-video-title");
+      if (sidebarTitle) sidebarTitle.textContent = "No lecture selected";
+      const sidebarChunks = document.getElementById("sidebar-video-chunks");
+      if (sidebarChunks) sidebarChunks.textContent = "Paste a URL to start";
+      const activeDeleteBtn = document.getElementById("active-video-delete-btn");
+      if (activeDeleteBtn) activeDeleteBtn.classList.add("hidden");
+
+      // Stop player and return to home/onboarding view
+      if (ytPlayer && typeof ytPlayer.stopVideo === "function") {
+        try { ytPlayer.stopVideo(); } catch (e) {}
+      }
+      goToMainPage();
+    }
+
+    closeDeleteVideoModal();
+    await loadLibrary();
+    showToast(`🗑️ "${targetTitle}" removed from database`, "info");
+
+  } catch (err) {
+    console.error("[Delete Video] Error:", err);
+    showToast(`Failed to delete lecture: ${err.message}`, "error");
+  } finally {
+    if (confirmBtn) confirmBtn.disabled = false;
+    if (btnText) btnText.textContent = originalText;
+  }
+}
+
 
 async function loadVideoFromLibrary(videoId, youtubeId, title, chunkCount, isAutoRestore = false) {
   // If already active in workspace, just switch view

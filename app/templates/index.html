@@ -130,8 +130,15 @@
             <div class="active-video-name" id="sidebar-video-title">No lecture selected</div>
             <div class="active-video-chunks" id="sidebar-video-chunks">Paste a URL to start</div>
           </div>
+          <button class="active-video-delete-btn hidden" id="active-video-delete-btn" title="Delete Active Lecture" onclick="handleActiveVideoDelete(event)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
         </div>
       </div>
+
 
       <!-- Previous Lectures (ChromaDB + SQLite) -->
       <div class="sidebar-library" id="sidebar-library">
@@ -909,12 +916,51 @@
     </div>
   </div>
 
+  <!-- ════════════════ DELETE VIDEO CONFIRMATION MODAL ════════════════ -->
+  <div id="delete-video-modal" class="modal-overlay hidden">
+    <div class="modal-backdrop" onclick="closeDeleteVideoModal()"></div>
+    <div class="modal-card" style="max-width: 420px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center; color: #ef4444;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </div>
+          <h3 style="margin: 0; font-size: 1.05rem;">Delete Lecture</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeDeleteVideoModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtitle" style="margin-bottom: 10px;">Are you sure you want to delete this lecture from your database?</p>
+        <div id="delete-video-title-preview" style="font-weight: 600; color: var(--text-primary); font-size: 0.85rem; padding: 10px 12px; background: var(--bg-surface-2); border: 1px solid var(--border-subtle); border-radius: 8px; margin-bottom: 12px; word-break: break-word; line-height: 1.4;">
+          Lecture Title
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+          ⚠️ This will permanently remove its transcript embeddings, smart notes, quiz attempts, and chat history.
+        </p>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn btn-glass-sm" onclick="closeDeleteVideoModal()">Cancel</button>
+        <button id="btn-confirm-delete-video" class="btn btn-danger-sm" onclick="confirmDeleteVideo()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          <span id="delete-confirm-btn-text">Delete Permanently</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notifications -->
   <div id="toast-notification" class="toast-card hidden"></div>
 
-  <script src="/static/js/app.js?v=20260824_brand_icon_sized"></script>
+  <script src="/static/js/app.js?v=20260825_delete_video_support"></script>
 </body>
 </html>
+
 
 
 

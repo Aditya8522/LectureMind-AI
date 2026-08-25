@@ -404,3 +404,64 @@ def get_video_chunks(video_id: str, db: Session = Depends(get_db)):
         "raw_transcript": video.raw_transcript,
     }
 
+
+@router.delete("/{video_id}")
+def delete_video(
+    video_id: str,
+    user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+):
+    """
+    Permanently delete or remove a video lecture from the database and vector store.
+    - Removes UserVideo association for the active user.
+    - Purges the ChromaDB collection to free vector disk space.
+    - Removes all associated chunks, chat history, notes, quizzes, and the video row.
+    """
+    try:
+        vid_id_int = int(video_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="video_id must be an integer.")
+
+    video = db.query(Video).filter(Video.id == vid_id_int).first()
+    if not video:
+        raise HTTPException(status_code=404, detail=f"Video with id '{video_id}' not found.")
+
+    youtube_video_id = video.youtube_video_id
+    video_title = video.title or "Lecture"
+
+    # If user is authenticated, remove user link
+    if user:
+        db.query(UserVideo).filter(
+            UserVideo.user_id == user.id,
+            UserVideo.video_id == vid_id_int,
+        ).delete()
+        db.commit()
+
+    # Check if other users are linked
+    remaining_links = db.query(UserVideo).filter(UserVideo.video_id == vid_id_int).count()
+
+    if remaining_links == 0 or not user:
+        # Purge ChromaDB collection
+        from app.core.vectorstore import delete_collection
+        delete_collection(youtube_video_id)
+
+        # Delete Video row (SQLAlchemy cascade deletes chunks, notes, chat_history, quiz_attempts)
+        db.delete(video)
+        db.commit()
+        print(f"[videos] Video ID {vid_id_int} ('{video_title}') completely purged from SQLite and ChromaDB.")
+        return {
+            "status": "success",
+            "message": f"Lecture '{video_title}' deleted completely from database.",
+            "video_id": str(vid_id_int),
+            "purged_completely": True,
+        }
+    else:
+        print(f"[videos] Video ID {vid_id_int} unlinked from user {user.email}. Retaining shared video for {remaining_links} other users.")
+        return {
+            "status": "success",
+            "message": f"Lecture '{video_title}' removed from your library.",
+            "video_id": str(vid_id_int),
+            "purged_completely": False,
+        }
+
+
