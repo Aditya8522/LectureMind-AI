@@ -263,40 +263,57 @@ def _build_cited_timestamps(chunks: List[dict], video_id: str) -> List[dict]:
 
 # -- Phase 2: Notes Generation (Duration-Scaled & Multi-Part for 2+ Hour Lectures) --
 
-NOTES_SUMMARY_PROMPT = """You are an expert academic note-taker. Generate an executive study summary from the lecture transcript below.
+# ── Phase 2: Notes Generation (ThetaWave Publication-Grade Architecture) ─────
+
+NOTES_SUMMARY_PROMPT = """You are an expert academic note-taker specializing in high-retention, publication-grade study guides in the exact style of ThetaWave AI.
+Generate a concise, highly structured Executive Summary from the lecture transcript below.
 Total Lecture Duration: {duration_str}
 
+CRITICAL RULES:
+1. STRICT CONTEXT FIDELITY: Only include concepts, terms, examples, code, and remarks that are ACTUALLY present in the transcript. Do NOT hallucinate outside textbook trivia, quotes, or unrelated theory.
+2. HIGH-DENSITY TABLES: Use clean Markdown tables for key concepts, steps, and complexities.
+3. CONCISE & SCANNABLE: Keep explanations crisp, high-yield, and organized with clear emojis and headers.
+
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS MARKDOWN STRUCTURE:
-# 📝 Executive Summary: {title}
-> ⏱️ **Duration:** {duration_str} | **High-Yield Overview & Concept Roadmap**
 
-## 🎯 Core Lecture Thesis
-2-3 clear, comprehensive paragraphs explaining the fundamental topic, why it matters, core objectives, and theoretical foundation.
+# 📝 {title}
+> ⏱️ **Duration:** {duration_str} | **Executive Study Summary**
 
-## 🗺️ Lecture Roadmap & Milestones
-- **Phase 1: Foundations** [0:00] — Brief outline of introductory topics and intuition.
-- **Phase 2: Core Formulations & Derivations** — Key mathematical / algorithmic principles.
-- **Phase 3: Implementation & Validation** — Practical coding and empirical results.
-(Map out the entire timeline of the lecture with milestone timestamps [M:SS] or [H:MM:SS])
+## 🔄 Core Lecture Essence & Objective
+A concise 2-3 paragraph breakdown explaining the central problem, why it matters, core theoretical insights, and the overall solution paradigm presented in the lecture.
 
-## 📌 Major Conceptual Pillars
-- **[Concept Name]** [timestamp] — Clear, high-yield explanation. Include key LaTeX formulas ($...$ or $$...$$) where applicable.
-- (Detail all major concepts covered across the full lecture duration)
+---
 
-## 🔑 Key Terms & Mathematical Definitions
-| Term / Symbol | Definition / Formula | Significance / Use Case |
-|---|---|---|
-| (Include 6-12 core terms and mathematical equations formatted in LaTeX) |
+## 🔑 Key Concepts & Terminology
+| Concept / Term | Formal Definition & Role in Lecture |
+|---|---|
+| (Include 4-8 core concepts directly discussed in the transcript) |
 
-## 💡 Master Takeaways
-1. First critical takeaway
-2. Second critical takeaway
-(5-8 practical, high-value takeaways summarizing the entire lecture)
+---
 
-RULES:
-- Maintain high academic clarity and structure.
-- Format all mathematical equations in valid LaTeX ($formula$ for inline, $$formula$$ for display).
-- Cover the entire timeline from the beginning to the end.
+## 🗺️ Lecture Flow & Procedural Roadmap
+1. **[Milestone 1]** [timestamp] — Brief overview of intuition, problem setup, and foundations.
+2. **[Milestone 2]** [timestamp] — Core mechanisms, formulas, and step-by-step algorithms.
+3. **[Milestone 3]** [timestamp] — Practical implementation, optimization, and edge cases.
+
+---
+
+## ⏲️ Complexity & Approach Summary
+| Approach / Paradigm | Time Complexity | Space Complexity | Notes & Trade-offs |
+|---|---|---|---|
+| (Include one row per approach/technique discussed in the lecture) |
+
+---
+
+## 💡 Master Key Takeaways
+- **[Takeaway 1]** — Actionable high-yield summary point.
+- **[Takeaway 2]** — Actionable high-yield summary point.
+(5-8 master takeaways summarizing the key learnings for quick exam/interview revision)
+
+---
+
+## 📚 Series & Practical Context
+- (Include specific prerequisites, playlist references, or instructor recommendations mentioned in the transcript)
 
 VIDEO TITLE: {title}
 
@@ -306,76 +323,182 @@ TRANSCRIPT CONTEXT:
 GENERATE EXECUTIVE SUMMARY NOTES NOW:"""
 
 
-NOTES_DETAILED_PROMPT_SINGLE = """You are an expert academic professor and technical author. Cover the ENTIRE lecture in exhaustive detail — every concept, proof, equation, algorithm, and example from minute 0 to the very last minute.
+NOTES_DETAILED_PROMPT_SINGLE = """You are an expert academic tutor and technical author specializing in publication-grade master study guides in the exact style of ThetaWave AI.
+Cover the ENTIRE lecture in exhaustive detail — every concept, step-by-step algorithm, table, code implementation, parameter, and instructor nuance from minute 0 to the very last minute.
 
-CRITICAL INSTRUCTIONS FOR DEPTH & COMPLETENESS:
-1. EXHAUSTIVE DEPTH: Do NOT rush or over-summarize. For every topic, provide rich, thorough explanations (4-8 comprehensive bullet points) explaining intuition, mechanics, mathematical equations, and real-world implications.
-2. MATHEMATICAL FORMULAS IN FULL LATEX:
-   - Always format math variables and equations using standard LaTeX:
-     - Inline variables: $y = mx + b$, $\\theta_j$, $\\alpha$, $\\bar{{x}}$
-     - Standalone display equations: $$\\frac{{\\partial E}}{{\\partial b}} = -2 \\sum_{{i=1}}^{{n}} (y_i - mx_i - b) = 0$$
-   - Show complete algebraic derivations step-by-step. NEVER skip intermediate proof steps.
-3. CODE IMPLEMENTATIONS: When programming/code is discussed or shown in the lecture, write out the complete, well-commented code block.
-4. CHAPTER HEADINGS WITH TIMESTAMPS: Every subtopic must have its own ## heading with a milestone timestamp (e.g. `## 🔍 Ordinary Least Squares (OLS) [05:45]`).
+CRITICAL INSTRUCTIONS FOR DEPTH, STRUCTURE & ACCURACY:
+1. 100% STRICT TRANSCRIPT GROUNDING: Base every definition, proof, code block, prerequisite, and tip strictly on the transcript context. Do NOT invent external historical quotes or outside textbook trivia not discussed in the video.
+2. RICH MARKDOWN TABLES EVERYWHERE:
+   - For step-by-step procedures: Create a `| Step | Description / Action |` table.
+   - For variable tracking / state windowing: Create a `| Variable | Meaning & Purpose |` table.
+   - For complexity analysis: Create a `| Approach | Time Complexity | Space Complexity | Notes |` table.
+   - For terminology: Create a `| Term | Definition |` table.
+3. FULL LATEX MATHEMATICS: Format all formulas and variables in standard LaTeX ($x$, $\\theta$, $$\\sum...$$). Never omit algebraic steps.
+4. COMPLETE CODE SNIPPETS: Write out complete, cleanly formatted code in the primary language demonstrated in the lecture (C++, Python, Java, etc.) with step comments.
+5. RECURSION TREES / WORKFLOWS: When branching or workflows are discussed, provide a clear structured diagram or ASCII tree (e.g. `f(5) ├── f(4)...`) showing redundancy.
+6. METAPHORS & TEACHER INSIGHTS: Capture the instructor's intuitive metaphors, playlist prerequisites (e.g., lecture numbers), code availability notes, and practical rules of thumb.
 
-OUTPUT FORMAT (follow EXACTLY):
+OUTPUT STRUCTURE (follow this EXACT modular layout):
 
 # 📚 {title}
-> ⏱️ **Duration:** {duration_str} | **Comprehensive Master Study Guide**
+> ⏱️ **Total Duration:** {duration_str} | **Comprehensive Master Study Guide**
 
-Brief overview of the full lecture scope, theoretical objectives, and practical significance.
+Brief overview of the full lecture scope, fundamental objectives, and learning roadmap.
 
 ---
 
-## [emoji] [Topic Title] [M:SS]
+## 🔄 [Topic 1: Introduction & Motivation] [M:SS]
 
-> **[Key Term / Concept]:** One-sentence formal definition of the concept introduced here.
+> **[Core Concept]:** Clear formal definition from the lecture.
 
-- **[Point]** — detailed explanation covering intuition and mechanics.
-- **[Point]** — detailed explanation.
-- (Cover all important details, parameters, nuances, and edge cases from the transcript for this section)
+- Core intuition and theoretical breakdown (3–6 detailed bullet points).
+- The motivation ("Why do we need this approach?").
 
-[If explaining step-by-step logic, include numbered list:]
-1. Step one
-2. Step two
-
-[If mathematical derivation is present, show complete LaTeX steps:]
-$$formula$$
-
-[If code was demonstrated, include clean Python code:]
-```python
-# Full code from lecture
-```
-
-[If comparing concepts, include a structured table:]
-| Feature / Concept | Mechanism | Strengths | Trade-offs |
+[If multi-approach comparison or pipeline is introduced, include a structured table or flow list:]
+| Approach | Mechanism | Primary Advantage | Limitation |
 |---|---|---|---|
 | value | value | value | value |
 
 ---
 
-[REPEAT the ## section block for EVERY concept in the lecture. NEVER skip any topic.]
+## 🔍 [Topic 2: Foundational Recurrence / Mechanism] [M:SS]
+
+> **[Key Concept / Recurrence]:** Mathematical or structural definition.
+
+Mathematical recurrence and boundary conditions:
+$$formula$$
+
+[If code was shown, include complete, well-commented code block:]
+```cpp
+// Full implementation from lecture
+```
+
+Complexity Analysis:
+- **Time Complexity:** $O(...)$ — detailed derivation.
+- **Space Complexity:** $O(...)$ — detailed call stack / memory breakdown.
+
+[If recursion tree or branching was explained, include ASCII tree:]
+```text
+f(5)
+├── f(4)
+│   ├── f(3)
+│   │   ├── f(2)
+...
+```
 
 ---
 
-## ⚡ Comprehensive Quick Reference Table
+## 💾 [Topic 3: Intermediate Optimization / Memoization] [M:SS]
 
-| Concept / Technique | Mechanism & Math | Strengths | Best Used When |
-|---|---|---|---|
-| (Include one comprehensive row per concept/algorithm covered in the lecture) |
+> **[Key Term]:** Formal definition.
+
+### Steps to Implement:
+| Step | Description & Code Action |
+|---|---|
+| Step 0 | Declare and initialize cache structure |
+| Step 1 | Check if subproblem is already solved before computing |
+| Step 2 | Store computed result in cache before returning |
+
+[Include complete code implementation with step annotations:]
+```cpp
+// Full optimized code
+```
+
+Complexity Analysis:
+- **Time Complexity:** $O(...)$
+- **Space Complexity:** $O(...)$
 
 ---
 
-## 💡 Master Key Takeaways (Exam & Production Review)
+## 📊 [Topic 4: Iterative State Resolution / Tabulation] [M:SS]
 
-- **[Takeaway 1]** — comprehensive explanation
-- (8–12 master takeaways covering the entire lecture)
+> **[Key Term]:** Formal definition.
+
+### Steps to Convert:
+| Step | Description & State Mapping |
+|---|---|
+| Step 1 | Initialize table of size $n+1$ |
+| Step 2 | Set base cases explicitly |
+| Step 3 | Iteratively compute states from base cases to target |
+
+[Include complete code implementation:]
+```cpp
+// Full tabulation code
+```
+
+Complexity Analysis:
+- **Time Complexity:** $O(...)$
+- **Space Complexity:** $O(...)$
 
 ---
 
-## 📝 Practical Implementation Notes & Nuances
+## ⚡ [Topic 5: Space Optimization / Variable State Windowing] [M:SS]
 
-- Practical tips, pitfalls to avoid, computational complexity, and best practices.
+> **[Key Concept]:** Explanation of minimum active window.
+
+### Variables Used:
+| Variable | Meaning & Stored Subproblem State |
+|---|---|
+| prev2 | Stores state $i-2$ |
+| prev | Stores state $i-1$ |
+| curr | Current state being computed |
+
+[Include space-optimized code:]
+```cpp
+// Full space-optimized code
+```
+
+---
+
+[REPEAT the detailed section format for EVERY subsequent concept, algorithm, or demonstration in the lecture. Never skip any topic.]
+
+---
+
+## ⏲️ Time & Space Complexity Master Summary
+
+| Approach | Implementation Details | Time Complexity | Space Complexity | Key Notes & Overhead |
+|---|---|---|---|---|
+| (Complete row per approach discussed) |
+
+---
+
+## 🔑 Key Concepts & Terminology
+
+| Concept / Term | Comprehensive Explanation & Role in Lecture |
+|---|---|
+| (Include 6-12 core concepts and terms directly from the transcript) |
+
+---
+
+## 🧮 Key Code Snippet Summary
+
+| Approach / Pattern | 1–2 Line Core Logic Snippet |
+|---|---|
+| (Include quick-reference 1-line syntax for each technique) |
+
+---
+
+## 💡 Metaphor for Deep Understanding
+
+> **[Intuitive Analogy]:** A vivid real-world metaphor explaining the core concept as illuminated by the instructor.
+
+- Breakdown of the metaphor mapping to technical components.
+
+---
+
+## 🔧 Practical Implementation Tips & Nuances
+
+- **[Tip 1]** — Concrete implementation guideline.
+- **[Pitfall to Avoid]** — Common error (e.g. array indexing, passing by value vs reference, uninitialized base cases).
+- (5–8 actionable best practices from the lecture)
+
+---
+
+## 📚 Prerequisites, Series Roadmap & Next Steps
+
+- **Prerequisites:** Prior lectures, playlist topics, or foundational concepts required.
+- **Series Roadmap:** How this lecture connects to upcoming topics and interview preparation.
+- **Instructor Notes:** Specific requests (e.g., code repository, article links, engagement) mentioned in the video.
 
 ---
 
@@ -384,30 +507,29 @@ VIDEO TITLE: {title}
 TRANSCRIPT CONTEXT:
 {context}
 
-GENERATE COMPLETE MASTER STUDY NOTES NOW:"""
+GENERATE THE THETAWAVE-STYLE MASTER STUDY GUIDE NOW:"""
 
 
-NOTES_DETAILED_PART_PROMPT = """You are an expert academic professor and technical author writing Part {part_num} of {total_parts} of an exhaustive Master Study Guide for the lecture: "{title}".
+NOTES_DETAILED_PART_PROMPT = """You are an expert academic tutor and technical author writing Part {part_num} of {total_parts} of an exhaustive, publication-grade Master Study Guide in the exact style of ThetaWave AI for the lecture: "{title}".
 Total Lecture Duration: {duration_str}
 This Part covers timestamps: [{start_ts}] to [{end_ts}].
 
-CRITICAL INSTRUCTIONS FOR UNCOMPRESSED DEPTH:
-1. COMPLETE CHAPTER COVERAGE: Generate in-depth, thorough notes for EVERY concept, derivation, theorem, algorithm, parameter, and code implementation introduced between [{start_ts}] and [{end_ts}].
-2. MATHEMATICAL FORMULAS IN FULL LATEX:
-   - Format all math variables and equations in standard LaTeX:
-     - Inline math: $formula$ (e.g. $y_i$, $\\bar{{x}}$, $\\beta$)
-     - Display equations: $$\\sum_{{i=1}}^{{n}} (x_i - \\bar{{x}})^2$$
-   - Provide full, step-by-step mathematical derivations without skipping algebra.
-3. SECTION FORMAT:
-   For every subtopic/milestone in this time window:
+CRITICAL INSTRUCTIONS FOR UNCOMPRESSED THETAWAVE DEPTH:
+1. STRICT TRANSCRIPT FIDELITY: Only include concepts, algorithms, code, and remarks spoken in this timestamp window. Do not invent outside theories.
+2. HIGH-DENSITY TABLES: Whenever procedures, variables, or comparisons are explained, generate clean Markdown tables (`| Step | Action |` or `| Variable | Meaning |`).
+3. COMPLETE LATEX MATHEMATICS: Format all formulas, recurrences, and variables in standard LaTeX ($x$, $$\\sum...$$).
+4. COMPLETE CODE BLOCKS: Provide full, clean code implementations in the primary language demonstrated.
+5. SECTION FORMAT:
+   For every subtopic in this time window:
    ## [emoji] [Topic Title] [{start_ts}]
-   > **[Key Term / Concept]:** Clear formal definition.
-   - Detailed conceptual breakdown (4–8 thorough, informative bullet points detailing intuition, mechanics, formulas, and trade-offs).
-   - [If mathematical derivation]: Complete step-by-step LaTeX display equations ($$..$$).
-   - [If step-by-step logic]: Numbered list (1., 2., 3.)
-   - [If structured comparison]: Clean Markdown table (| Col 1 | Col 2 | ...)
-   - [If code was shown or explained]: Full, clean Python/relevant code block with comments.
-4. DO NOT output the main document title (# Title) or concluding summary tables in this part — focus 100% on rich, deep chapter notes for [{start_ts}] to [{end_ts}].
+   > **[Core Concept]:** One-sentence formal definition.
+   - Comprehensive conceptual breakdown (4–8 thorough, scannable bullet points).
+   - [If multi-step recipe]: Markdown table of steps (`| Step | Description |`).
+   - [If variable windowing]: Markdown table of variables (`| Variable | Meaning |`).
+   - [If mathematical proof]: Full LaTeX display equations ($$..$$).
+   - [If code demonstrated]: Complete, annotated code snippet.
+   - **Complexity Analysis:** Explicit breakdown of Time $O(...)$ and Space $O(...)$.
+6. DO NOT output the main document title (# Title) or concluding summary tables in this part — focus 100% on rich, deep chapter notes for [{start_ts}] to [{end_ts}].
 
 TRANSCRIPT CONTEXT FOR THIS PART:
 {context}
@@ -415,38 +537,70 @@ TRANSCRIPT CONTEXT FOR THIS PART:
 GENERATE PART {part_num} CHAPTER NOTES NOW:"""
 
 
-NOTES_DETAILED_SYNTHESIS_PROMPT = """You are an expert academic educator finalizing a Master Study Guide for the lecture: "{title}".
+NOTES_DETAILED_SYNTHESIS_PROMPT = """You are an expert academic educator finalizing a publication-grade Master Study Guide in the exact style of ThetaWave AI for the lecture: "{title}".
 Total Lecture Duration: {duration_str}
 
-Below is the complete transcript outline of the entire lecture:
+Below is the complete transcript outline across all lecture parts:
 {context_summary}
 
 Generate the final synthesis section containing:
-1. An Executive Quick Reference Table summarizing all major concepts, formulas (in LaTeX), strengths, and trade-offs across the ENTIRE lecture.
-2. 8–12 Master Key Takeaways for exam/interview review.
-3. Practical Implementation Notes, edge cases, and computational complexity.
+1. ⏲️ **Time & Space Complexity Master Summary Table** across all approaches.
+2. 🔑 **Key Concepts & Terminology Table** (6–12 core terms with formal explanations).
+3. 🧮 **Key Code Snippet Summary Table** (1–2 line core logic snippet per approach).
+4. 💡 **Metaphor for Deep Understanding** (Intuitive analogy reflecting the instructor's explanation).
+5. 🔧 **Practical Implementation Tips & Pitfalls to Avoid**.
+6. 📚 **Prerequisites, Series Roadmap & Next Steps** (capturing playlist context and instructor notes).
 
-FORMAT:
-## ⚡ Master Quick Reference Table
+OUTPUT STRUCTURE:
 
-| Concept / Method | Mathematical Formulation / Mechanism | Strengths | Best Used When / Trade-offs |
-|---|---|---|---|
-| (Include 6-12 rows covering the full lecture) |
+## ⏲️ Time & Space Complexity Master Summary
 
----
-
-## 💡 Master Key Takeaways (Exam & Production Review)
-
-- **[Takeaway 1]** — in-depth explanation
-- (8-12 comprehensive takeaways)
+| Approach | Implementation Details | Time Complexity | Space Complexity | Key Notes & Overhead |
+|---|---|---|---|---|
+| (Include one comprehensive row per approach discussed) |
 
 ---
 
-## 📝 Practical Implementation Notes & Nuances
+## 🔑 Key Concepts & Terminology
 
-- Practical tips, pitfalls, complexity analysis, and implementation best practices.
+| Concept / Term | Comprehensive Explanation & Role in Lecture |
+|---|---|
+| (Include 6-12 core concepts and terms directly from the transcript) |
+
+---
+
+## 🧮 Key Code Snippet Summary
+
+| Approach / Pattern | 1–2 Line Core Logic Snippet |
+|---|---|
+| (Include quick-reference 1-line syntax for each technique) |
+
+---
+
+## 💡 Metaphor for Deep Understanding
+
+> **[Intuitive Analogy]:** Clear real-world metaphor explaining the core concept.
+
+- Breakdown of the metaphor mapping to technical components.
+
+---
+
+## 🔧 Practical Implementation Tips & Pitfalls to Avoid
+
+- **[Best Practice]** — Concrete implementation guideline.
+- **[Common Pitfall]** — Pitfall to avoid (e.g. base cases, recursion depth, memory allocation).
+- (5–8 actionable best practices from the lecture)
+
+---
+
+## 📚 Prerequisites, Series Roadmap & Next Steps
+
+- **Prerequisites:** Foundational topics and playlist prerequisites mentioned in the lecture.
+- **Series Roadmap:** How this lecture connects to upcoming topics and interview preparation.
+- **Instructor Notes:** Engagement requests and resource links from the video.
 
 OUTPUT ONLY THE MARKDOWN SYNTHESIS SECTIONS:"""
+
 
 
 def _partition_chunks_by_duration(sorted_chunks: List[dict], target_segment_duration_sec: float = 3000.0) -> List[List[dict]]:
