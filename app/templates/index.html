@@ -28,7 +28,7 @@
   <!-- YouTube IFrame API for seeking video to exact timestamps -->
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
-<body class="theme-light">
+<body class="theme-obsidian">
 
   <!-- ══════════════════════════ APP SHELL ══════════════════════════ -->
   <div class="app-layout">
@@ -222,22 +222,12 @@
       <!-- Top Header Bar -->
       <header class="topbar">
         <div class="topbar-left">
-          <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-              <line x1="9" y1="3" x2="9" y2="21"/>
-            </svg>
-          </button>
           <div class="breadcrumb">
             <span class="breadcrumb-root" onclick="goToMainPage()" style="cursor: pointer;" title="Go to Main Page">LectureMind</span>
             <span class="breadcrumb-sep">/</span>
             <span class="breadcrumb-title" id="topbar-title">Ready for lecture</span>
           </div>
-
         </div>
-
-
-
 
         <div class="topbar-right">
           <button class="btn btn-theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch to Light / Dark mode">
@@ -255,14 +245,6 @@
               </svg>
             </span>
             <span id="theme-toggle-label">Light Mode</span>
-          </button>
-          <button class="btn btn-glass-sm" onclick="openNewVideoModal()" title="Load New Video">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <span>Change Lecture</span>
           </button>
         </div>
       </header>
@@ -550,11 +532,6 @@
                     <span>Video & Chat</span>
                   </button>
                   <div class="dedicated-header-title-box">
-                    <div class="dedicated-badge-row">
-                      <span class="badge-notes-studio">✨ THETAWAVE SMART NOTES</span>
-                      <span class="notes-meta-pill" id="notes-duration-pill">⏱️ Ready</span>
-                      <span class="notes-meta-pill text-emerald">⚡ Dual-Core Gemini Engine</span>
-                    </div>
                     <h2 class="dedicated-lecture-title" id="notes-lecture-title">Lecture Notes</h2>
                   </div>
                 </div>
@@ -569,17 +546,6 @@
 
                 <!-- Right: Actions -->
                 <div class="dedicated-header-right">
-                  <!-- Toggle Main Left Sidebar Button -->
-                  <button class="btn btn-glass-sm" onclick="toggleSidebar()" title="Toggle Main Left Sidebar (Max Width)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-                    <span>Sidebar</span>
-                  </button>
-
-                  <!-- Toggle Outline Sidebar Button -->
-                  <button class="btn btn-glass-sm" id="btn-toggle-outline" onclick="toggleNotesOutline()" title="Toggle Lecture Outline" style="display:none;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                    <span id="btn-toggle-outline-label">Outline</span>
-                  </button>
 
                   <!-- Copy Markdown Button -->
                   <button class="btn btn-glass-sm" id="btn-copy-notes" onclick="copyFullNotes()" title="Copy Full Notes to Clipboard" style="display:none;">
@@ -609,12 +575,6 @@
                       </button>
                     </div>
                   </div>
-
-                  <!-- Shortcut to Quiz -->
-                  <button class="btn btn-glass-sm" onclick="switchMainTab('quiz')" title="Open Practice Quiz Arena">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
-                    <span>Practice Quiz</span>
-                  </button>
 
                   <button class="btn btn-gradient-primary btn-sm" id="generate-notes-btn" onclick="generateNotes()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>

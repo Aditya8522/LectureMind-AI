@@ -1029,7 +1029,7 @@ function appendChatBubble(text, role, citations = []) {
       <div class="bot-avatar"><span>✨</span></div>
       <div class="bubble-content bot-bubble">
         <div class="bot-author">LectureMind AI</div>
-        <div class="bubble-markdown">${formatMarkdown(text)}</div>
+        <div class="bubble-markdown">${renderMarkdownFull(text)}</div>
         ${renderCitationsHtml(citations)}
       </div>
     `;

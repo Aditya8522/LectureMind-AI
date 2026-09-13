@@ -21,9 +21,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-EMBEDDING_MODEL = "gemini-embedding-001"
-BATCH_SIZE = 50   # texts per batch call (free tier limit is 100, we use 50 safely)
-BATCH_DELAY = 0.5  # seconds between batch calls
+EMBEDDING_MODEL = "gemini-embedding-001"  # Also known as gemini-embedding-1.0
+BATCH_SIZE = 50    # texts per batch (free tier: 100 RPM, we use 50 safely)
+BATCH_DELAY = 1.0  # seconds between batches — slightly more breathing room on free tier
 
 _clients = []  # list of genai.Client instances for key pooling
 

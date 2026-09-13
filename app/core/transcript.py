@@ -391,17 +391,180 @@ ERROR_PATTERNS = [
 ]
 
 def _is_error_response(text: str) -> bool:
-    """Detect if text contains scraper error messages or HTML responses."""
+    """
+    Detect HTML error pages and scraper failures in raw text.
+    Used when checking raw segment input and Google Translator output.
+    Does NOT check for non-ASCII — raw Hindi/regional input is legitimately non-ASCII.
+    """
     if not text or not isinstance(text, str):
         return True
-    t_lower = text.lower()
+    t_lower = text.lower().strip()
     if "error 500" in t_lower or "that's all we know" in t_lower:
         return True
     if "500.that's an error" in t_lower or "please try again later" in t_lower:
         return True
     if "<!doctype" in t_lower or "<html" in t_lower or "<head" in t_lower:
         return True
+    if "an error occurred" in t_lower and "please try again" in t_lower:
+        return True
     return False
+
+
+def _is_bad_translation_output(text: str) -> bool:
+    """
+    Detect bad/failed translation output from the LLM or Google Translator.
+    Used ONLY when validating model-generated English translations.
+    Includes non-ASCII check: a valid English translation should be mostly ASCII.
+    """
+    if _is_error_response(text):
+        return True
+    if not text or not isinstance(text, str):
+        return True
+    t_lower = text.lower().strip()
+    # LLM refusal messages
+    if "i'm sorry" in t_lower and ("cannot" in t_lower or "unable" in t_lower):
+        return True
+    if t_lower.startswith("sorry,") and len(t_lower) < 200:
+        return True
+    # Mostly non-ASCII → translation failed (returned original foreign text)
+    if len(text) > 10:
+        non_ascii = sum(1 for c in text if ord(c) > 127)
+        if non_ascii / len(text) > 0.5:
+            return True
+    return False
+
+
+
+def _translate_segments_with_gemini(
+    blocks: list,
+    source_language: str,
+    batch_size: int = 20,
+) -> list:
+    """
+    High-quality educational translation using Gemini.
+
+    Strategy:
+    - Splits blocks into batches of 20 (smaller = more reliable parsing)
+    - Runs batches in parallel across Key 1 and Key 2 for 2x speed
+    - Retries any failed/unparsed batch once with a smaller batch size (10)
+    - Falls back to original text only for truly unrecoverable batches
+    - Uses TRANSLATION_MODELS (non-thinking only — no gemini-2.5-flash)
+    """
+    try:
+        from app.core.llm import _call_gemini_with_fallback, TRANSLATION_MODELS
+        from google.genai import types as genai_types
+        import concurrent.futures
+    except Exception as e:
+        print(f"[transcript] [WARN] Cannot import LLM fallback engine: {e}")
+        return blocks
+
+    def _build_prompt(batch_blocks, lang):
+        numbered = "\n".join(f"{i+1}| {b['text']}" for i, b in enumerate(batch_blocks))
+        return f"""You are a professional translator. Translate the following {lang} lecture transcript lines into clear, academic English.
+
+STRICT OUTPUT RULES — READ CAREFULLY:
+- Output EXACTLY {len(batch_blocks)} lines, one per input line.
+- Each output line MUST start with its number followed by a pipe: 1| 2| 3| etc.
+- Use PLAIN TEXT ONLY. No markdown, no asterisks, no bold, no headers.
+- Preserve ALL technical terms, library names, and code exactly as spoken.
+- Do NOT add preamble, explanations, or any extra text before or after the numbered lines.
+- Do NOT merge multiple lines into one.
+- Do NOT output the original {lang} text.
+
+{lang} input:
+{numbered}
+
+English output (exactly {len(batch_blocks)} numbered lines):"""
+
+    def _call_batch(batch_blocks, key_preference, lang):
+        """Translate one batch, return dict of {0-based-index: translated_text}."""
+        prompt = _build_prompt(batch_blocks, lang)
+        try:
+            response = _call_gemini_with_fallback(
+                contents=prompt,
+                config=genai_types.GenerateContentConfig(
+                    temperature=0.05,
+                    max_output_tokens=4096,
+                ),
+                model_candidates=TRANSLATION_MODELS,
+                preferred_key=key_preference,
+            )
+            raw = response.text.strip()
+            return _parse_pipe_translations(raw, len(batch_blocks)), raw
+        except Exception as e:
+            return {}, str(e)
+
+    # Split blocks into batches
+    batches = []
+    for i in range(0, len(blocks), batch_size):
+        batches.append((i, blocks[i: i + batch_size]))
+
+    total_batches = len(batches)
+    print(f"[transcript] [Gemini] Translating {len(blocks)} speech blocks across {total_batches} batches (parallel dual-key)...")
+
+    # Translate all batches in parallel using both API keys
+    batch_results = {}  # batch_start_idx -> {0-based local idx: text}
+
+    def _translate_batch_worker(args):
+        batch_start, batch_blocks, batch_num = args
+        # Alternate key assignment: even batches → primary, odd → secondary
+        key_pref = "primary" if (batch_num % 2 == 0) else "secondary"
+        parsed, raw = _call_batch(batch_blocks, key_pref, source_language)
+
+        if len(parsed) < len(batch_blocks) * 0.5:
+            # Less than 50% parsed — retry once with smaller sub-batches
+            print(f"[transcript] [WARN] Batch {batch_num+1}/{total_batches} only {len(parsed)}/{len(batch_blocks)} parsed. Retrying in halves...")
+            mid = len(batch_blocks) // 2
+            parsed_a, _ = _call_batch(batch_blocks[:mid], "primary", source_language)
+            parsed_b, _ = _call_batch(batch_blocks[mid:], "secondary", source_language)
+            # Merge: parsed_b keys need offset
+            merged = {k: v for k, v in parsed_a.items()}
+            for k, v in parsed_b.items():
+                merged[k + mid] = v
+            parsed = merged
+            print(f"[transcript] [OK] Batch {batch_num+1} retry: {len(parsed)}/{len(batch_blocks)} parsed")
+        else:
+            print(f"[transcript] [OK] Gemini batch {batch_num+1}/{total_batches} ({len(batch_blocks)} blocks) → {len(parsed)} parsed")
+
+        return batch_start, parsed
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(_translate_batch_worker, (start, bblocks, bnum))
+            for bnum, (start, bblocks) in enumerate(batches)
+        ]
+        for fut in concurrent.futures.as_completed(futures):
+            try:
+                start_idx, parsed = fut.result()
+                batch_results[start_idx] = parsed
+            except Exception as e:
+                print(f"[transcript] [WARN] A translation batch worker raised: {e}")
+
+    # Assemble final translated segments in original order
+    translated_segments = []
+    for i, b in enumerate(blocks):
+        # Find which batch this block belongs to
+        batch_start = (i // batch_size) * batch_size
+        local_idx = i - batch_start
+        parsed_batch = batch_results.get(batch_start, {})
+        text_val = parsed_batch.get(local_idx, "").strip()
+
+        if not text_val or _is_bad_translation_output(text_val):
+            # Fall back to original text
+            text_val = b["text"]
+
+        clean_val = _clean_segment_text(text_val)
+        translated_segments.append({
+            "text": clean_val if clean_val else b["text"],
+            "start": b["start"],
+            "duration": b["duration"],
+        })
+
+    parsed_count = sum(1 for i, b in enumerate(blocks)
+                       for bs in [(i // batch_size) * batch_size]
+                       if batch_results.get(bs, {}).get(i - bs))
+    print(f"[transcript] Translation complete: {parsed_count}/{len(blocks)} blocks translated.")
+    return translated_segments
 
 
 def _clean_segment_text(text: str) -> str:
@@ -502,8 +665,8 @@ def _translate_segments(
 
             try:
                 translated_comb = translator.translate(combined_text)
-                if _is_error_response(translated_comb):
-                    print("[transcript] [WARN] GoogleTranslator returned scraper error page. Escalating to Gemini...")
+                if _is_bad_translation_output(translated_comb):
+                    print("[transcript] [WARN] GoogleTranslator returned bad output. Escalating to Gemini...")
                     google_failed = True
                     break
 
@@ -515,7 +678,7 @@ def _translate_segments(
 
                 for idx, b in enumerate(group):
                     t_txt = trans_lines[idx] if idx < len(trans_lines) else b["text"]
-                    if _is_error_response(t_txt):
+                    if _is_bad_translation_output(t_txt):
                         google_failed = True
                         break
                     translated_blocks.append({
@@ -543,98 +706,40 @@ def _translate_segments(
     return _translate_segments_with_gemini(blocks, source_language)
 
 
-def _translate_segments_with_gemini(
-    blocks: list,
-    source_language: str,
-    batch_size: int = 35,
-) -> list:
-
-    """
-    High-quality educational translation using Gemini multi-model fallback.
-    Accurately handles Hinglish, technical code references, and library parameters.
-    """
-    try:
-        from app.core.llm import _call_gemini_with_fallback, NOTES_MODELS
-        from google.genai import types as genai_types
-    except Exception as e:
-        print(f"[transcript] [WARN] Cannot import LLM fallback engine: {e}")
-        return blocks
-
-    translated_segments = []
-    total_batches = (len(blocks) + batch_size - 1) // batch_size
-    print(f"[transcript] [Gemini] Translating {len(blocks)} speech blocks across {total_batches} batches...")
-
-    for batch_idx in range(0, len(blocks), batch_size):
-        batch = blocks[batch_idx : batch_idx + batch_size]
-        batch_num = batch_idx // batch_size + 1
-
-        numbered_lines = [f"{i+1}| {b['text']}" for i, b in enumerate(batch)]
-        source_text = "\n".join(numbered_lines)
-
-        prompt = f"""You are a professional educational translator. Translate the following {source_language} lecture transcript segments into fluent, clear, academic English.
-
-CRITICAL RULES:
-- The lecture may be in Hindi or Hinglish (Hindi mixed with English technical terms like LangChain, Runnables, PromptTemplate, RunnableSequence, LCEL, etc.).
-- Translate the Hindi explanations into natural, clear English while preserving ALL technical terms, code references, and library names exactly as spoken.
-- Maintain the exact format: [Number]| [English translation]
-- Exactly one line per numbered item (e.g. "1| Today we will cover Runnables in LangChain...")
-- Do NOT output HTML, error messages, markdown headers, or conversational preamble.
-- Output ALL {len(batch)} numbered lines.
-
-{source_language} segments to translate:
-{source_text}
-
-English translations:"""
-
-        translated_lines = {}
-        try:
-            response = _call_gemini_with_fallback(
-                contents=prompt,
-                config=genai_types.GenerateContentConfig(
-                    temperature=0.1,
-                    max_output_tokens=4096,
-                    top_p=0.85,
-                ),
-                model_candidates=NOTES_MODELS,
-                preferred_key="primary",
-            )
-            raw_text = response.text.strip()
-            translated_lines = _parse_pipe_translations(raw_text, len(batch))
-            print(f"[transcript] [OK] Gemini translated batch {batch_num}/{total_batches} ({len(batch)} blocks)")
-        except Exception as e:
-            print(f"[transcript] [WARN] Gemini translation batch {batch_num}/{total_batches} failed: {e}")
-            translated_lines = {i: b["text"] for i, b in enumerate(batch)}
-
-        for i, b in enumerate(batch):
-            text_val = translated_lines.get(i, "").strip() or b["text"]
-            clean_val = _clean_segment_text(text_val)
-            translated_segments.append({
-                "text": clean_val if clean_val else b["text"],
-                "start": b["start"],
-                "duration": b["duration"],
-            })
-
-    return translated_segments
 
 
 def _parse_pipe_translations(text: str, expected_count: int) -> dict:
     """
-    Parse Gemini's pipe-delimited output like:
-      1| In this video, we will learn about RAG...
-      2| Generative AI has made this possible...
+    Parse Gemini's pipe-delimited output.
     Returns a dict mapping 0-based index -> translated string.
     """
+    import re
     lines = text.strip().split("\n")
     result = {}
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        match = re.match(r"^(\d+)\s*[|.:)]\s*(.+)$", line)
+    non_empty_lines = [line.strip() for line in lines if line.strip()]
+    
+    # STRATEGY 1: If we have EXACTLY expected_count lines, 
+    # we can map them sequentially and just strip any leading numbers.
+    # This is 100% robust against formatting errors as long as it didn't merge lines.
+    if len(non_empty_lines) == expected_count:
+        for i, line in enumerate(non_empty_lines):
+            clean_line = re.sub(r"^[*_#]+", "", line).strip()
+            clean_line = re.sub(r"^\d+\s*[|.:)\-]\s*", "", clean_line).strip()
+            clean_line = re.sub(r"[*_]+$", "", clean_line).strip()
+            if not _is_bad_translation_output(clean_line):
+                result[i] = clean_line
+        return result
+        
+    # STRATEGY 2: If the count mismatched (e.g. it added a preamble or merged lines),
+    # try to use regex to pick out the numbered lines.
+    for line in non_empty_lines:
+        clean_line = re.sub(r"^[*_#]+", "", line).strip()
+        match = re.match(r"^(\d+)\s*[|.:)\-]\s*(.+)$", clean_line)
         if match:
             idx = int(match.group(1)) - 1
             res_txt = match.group(2).strip()
-            if not _is_error_response(res_txt):
+            res_txt = re.sub(r"[*_]+$", "", res_txt).strip()
+            if not _is_bad_translation_output(res_txt):
                 result[idx] = res_txt
 
     return result
